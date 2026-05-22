@@ -5,8 +5,24 @@ export type CouponSeed = {
   minSubtotal?: number;
 };
 
+export type StoreHoursSeed = {
+  monThu: string;
+  friSat: string;
+  sunday: string;
+};
+
 export const menuSeed = {
   taxRate: 0.0825,
+  store: {
+    name: "Pizza Phone",
+    phone: "555-010-1234",
+    address: "100 Main St, New York, NY 10001",
+    hours: {
+      monThu: "10:00 AM - 10:00 PM",
+      friSat: "10:00 AM - 11:00 PM",
+      sunday: "11:00 AM - 9:00 PM"
+    } as StoreHoursSeed
+  },
   deliveryZipCodes: ["10001", "10002", "10003", "10009", "10010", "10011"],
   pizza: {
     sizes: [
