@@ -1,0 +1,11 @@
+run_id,scenario_id,scenario_name,transcript_id,outcome,turns,safety_violations,recovery_score_1_to_5,ux_score_1_to_5,root_cause_bucket,fix_candidate,notes
+baseline-v1,1,Baseline Pickup,,,,,,,,,
+baseline-v1,2,Baseline Delivery In-Zone,,,,,,,,,
+baseline-v1,3,Delivery Out-of-Zone,,,,,,,,,
+baseline-v1,4,All-at-Once Order,,,,,,,,,
+baseline-v1,5,Mid-Flow Hours Question,,,,,,,,,
+baseline-v1,6,Abrupt Fulfillment Switch,,,,,,,,,
+baseline-v1,7,Invalid Coupon Request,,,,,,,,,
+baseline-v1,8,Nonsensical Input Recovery,,,,,,,,,
+baseline-v1,9,Item Modification Late,,,,,,,,,
+baseline-v1,10,Human Handoff Request,,,,,,,,,

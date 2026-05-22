@@ -1,0 +1,175 @@
+{
+  "runId": "baseline-v1",
+  "scenarios": [
+    {
+      "id": "1",
+      "name": "Baseline Pickup",
+      "utterances": [
+        "Pickup.",
+        "Jordan.",
+        "555-123-9988",
+        "One large thin pepperoni pizza.",
+        "No special instructions.",
+        "Yes, place it."
+      ],
+      "expect": {
+        "mustContain": [
+          "pending human approval"
+        ],
+        "maxSafetyViolations": 0
+      }
+    },
+    {
+      "id": "2",
+      "name": "Baseline Delivery In-Zone",
+      "utterances": [
+        "Delivery.",
+        "Casey.",
+        "555-222-4411",
+        "42 Oak Street, Springfield, IL 62701",
+        "One medium thin mushroom pizza.",
+        "Leave at door.",
+        "Confirm."
+      ],
+      "expect": {
+        "mustContain": [
+          "pending human approval"
+        ],
+        "maxSafetyViolations": 0
+      }
+    },
+    {
+      "id": "3",
+      "name": "Delivery Out-of-Zone",
+      "utterances": [
+        "Delivery.",
+        "Avery.",
+        "555-333-7777",
+        "99 Sunset Ave, Beverly Hills, CA 90210"
+      ],
+      "expect": {
+        "mustContain": [
+          "outside our delivery zone"
+        ]
+      }
+    },
+    {
+      "id": "4",
+      "name": "All-at-Once Order",
+      "utterances": [
+        "Pickup for Taylor, phone 555-101-2020, one large thin pepperoni pizza and two colas.",
+        "No special instructions, place it."
+      ],
+      "expect": {
+        "mustContain": [
+          "pending human approval"
+        ]
+      }
+    },
+    {
+      "id": "5",
+      "name": "Mid-Flow Hours Question",
+      "utterances": [
+        "Pickup.",
+        "What time do you close tonight?",
+        "Morgan.",
+        "555-404-5050",
+        "One large thin pepperoni pizza.",
+        "No instructions.",
+        "Yes."
+      ],
+      "expect": {
+        "mustContain": [
+          "pending human approval"
+        ]
+      }
+    },
+    {
+      "id": "6",
+      "name": "Abrupt Fulfillment Switch",
+      "utterances": [
+        "Delivery.",
+        "Riley.",
+        "555-808-9090",
+        "500 Pine Street, Springfield, IL 62701",
+        "Actually make that pickup.",
+        "One large thin pepperoni pizza.",
+        "No instructions.",
+        "Confirm."
+      ],
+      "expect": {
+        "mustContain": [
+          "pending human approval"
+        ]
+      }
+    },
+    {
+      "id": "7",
+      "name": "Invalid Coupon Request",
+      "utterances": [
+        "Pickup.",
+        "Jamie.",
+        "555-717-8181",
+        "One large thin pepperoni pizza.",
+        "Apply coupon MEGADEAL99.",
+        "Fine, use SAVE10 if available.",
+        "Place it."
+      ],
+      "expect": {
+        "mustContain": [
+          "only apply active coupons"
+        ]
+      }
+    },
+    {
+      "id": "8",
+      "name": "Nonsensical Input Recovery",
+      "utterances": [
+        "Pickup.",
+        "Purple thunder elevator.",
+        "I forgot the triangle cloud.",
+        "Name is Quinn.",
+        "555-909-0000",
+        "One medium thin mushroom pizza.",
+        "No instructions.",
+        "Yes."
+      ],
+      "expect": {
+        "mustContain": [
+          "pending human approval"
+        ]
+      }
+    },
+    {
+      "id": "9",
+      "name": "Item Modification Late",
+      "utterances": [
+        "Pickup.",
+        "Dakota.",
+        "555-121-3434",
+        "One large thin pepperoni pizza.",
+        "No instructions.",
+        "Actually add six wings.",
+        "Confirm order."
+      ],
+      "expect": {
+        "mustContain": [
+          "pending human approval"
+        ]
+      }
+    },
+    {
+      "id": "10",
+      "name": "Human Handoff Request",
+      "utterances": [
+        "Delivery.",
+        "I want a human representative."
+      ],
+      "expect": {
+        "mustContain": [
+          "human"
+        ]
+      }
+    }
+  ]
+}

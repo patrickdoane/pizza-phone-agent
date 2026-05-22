@@ -1,0 +1,53 @@
+{
+  "scenario": {
+    "id": "1",
+    "name": "Baseline Pickup",
+    "utterances": [
+      "Pickup.",
+      "Jordan.",
+      "555-123-9988",
+      "One large thin pepperoni pizza.",
+      "No special instructions.",
+      "Yes, place it."
+    ],
+    "expect": {
+      "mustContain": [
+        "pending human approval"
+      ],
+      "maxSafetyViolations": 0
+    }
+  },
+  "sessionId": "e328dfbf-48fe-4232-ad46-0b6825fc2579",
+  "transcript": [
+    {
+      "user": "Pickup.",
+      "assistant": "Great, pickup. What name should I put on the order?",
+      "statusCode": 200
+    },
+    {
+      "user": "Jordan.",
+      "assistant": "Thanks. What is the best phone number for this order?",
+      "statusCode": 200
+    },
+    {
+      "user": "555-123-9988",
+      "assistant": "What would you like to order today?",
+      "statusCode": 200
+    },
+    {
+      "user": "One large thin pepperoni pizza.",
+      "assistant": "Added one large thin pepperoni pizza. Any drinks, wings, or special instructions?",
+      "statusCode": 200
+    },
+    {
+      "user": "No special instructions.",
+      "assistant": "Your total is $20.02. Would you like to place this order?",
+      "statusCode": 200
+    },
+    {
+      "user": "Yes, place it.",
+      "assistant": "Thanks. Your order is created and pending human approval. Order ID: 036608fc-672a-496a-b164-4be82cf33e86",
+      "statusCode": 200
+    }
+  ]
+}

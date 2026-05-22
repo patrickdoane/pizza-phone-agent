@@ -1,0 +1,28 @@
+{
+  "scenario": {
+    "id": "10",
+    "name": "Human Handoff Request",
+    "utterances": [
+      "Delivery.",
+      "I want a human representative."
+    ],
+    "expect": {
+      "mustContain": [
+        "human"
+      ]
+    }
+  },
+  "sessionId": "e1c93c23-75e8-47ad-9a1e-6dd6f3bf062a",
+  "transcript": [
+    {
+      "user": "Delivery.",
+      "assistant": "Got it, delivery. What name should I put on the order?",
+      "statusCode": 200
+    },
+    {
+      "user": "I want a human representative.",
+      "assistant": "Absolutely. I can connect you to a human team member now.",
+      "statusCode": 200
+    }
+  ]
+}

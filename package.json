@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "simulate": "tsx src/cli/simulateCall.ts",
     "test": "vitest run",
-    "seed": "tsx src/index.ts --seed-only"
+    "seed": "tsx src/index.ts --seed-only",
+    "eval:conversations": "tsx scripts/runConversationEval.ts"
   },
   "engines": {
     "node": ">=20"

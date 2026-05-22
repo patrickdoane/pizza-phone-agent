@@ -1,0 +1,28 @@
+{
+  "scenario": {
+    "id": "4",
+    "name": "All-at-Once Order",
+    "utterances": [
+      "Pickup for Taylor, phone 555-101-2020, one large thin pepperoni pizza and two colas.",
+      "No special instructions, place it."
+    ],
+    "expect": {
+      "mustContain": [
+        "pending human approval"
+      ]
+    }
+  },
+  "sessionId": "49681cea-d0cd-4540-809b-dc03aea9bc48",
+  "transcript": [
+    {
+      "user": "Pickup for Taylor, phone 555-101-2020, one large thin pepperoni pizza and two colas.",
+      "assistant": "Great, pickup. What name should I put on the order?",
+      "statusCode": 200
+    },
+    {
+      "user": "No special instructions, place it.",
+      "assistant": "Thanks. What is the best phone number for this order?",
+      "statusCode": 200
+    }
+  ]
+}

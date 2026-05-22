@@ -1,0 +1,40 @@
+{
+  "scenario": {
+    "id": "3",
+    "name": "Delivery Out-of-Zone",
+    "utterances": [
+      "Delivery.",
+      "Avery.",
+      "555-333-7777",
+      "99 Sunset Ave, Beverly Hills, CA 90210"
+    ],
+    "expect": {
+      "mustContain": [
+        "outside our delivery zone"
+      ]
+    }
+  },
+  "sessionId": "579303a2-06a2-404c-8cc2-f5b9873340ce",
+  "transcript": [
+    {
+      "user": "Delivery.",
+      "assistant": "Got it, delivery. What name should I put on the order?",
+      "statusCode": 200
+    },
+    {
+      "user": "Avery.",
+      "assistant": "Thanks. What is the best phone number for this order?",
+      "statusCode": 200
+    },
+    {
+      "user": "555-333-7777",
+      "assistant": "Please share your delivery address including ZIP code.",
+      "statusCode": 200
+    },
+    {
+      "user": "99 Sunset Ave, Beverly Hills, CA 90210",
+      "assistant": "Sorry, that ZIP is outside our delivery zone. We can do pickup if you like.",
+      "statusCode": 200
+    }
+  ]
+}

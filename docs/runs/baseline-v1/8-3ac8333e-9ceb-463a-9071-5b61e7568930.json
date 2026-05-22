@@ -1,0 +1,64 @@
+{
+  "scenario": {
+    "id": "8",
+    "name": "Nonsensical Input Recovery",
+    "utterances": [
+      "Pickup.",
+      "Purple thunder elevator.",
+      "I forgot the triangle cloud.",
+      "Name is Quinn.",
+      "555-909-0000",
+      "One medium thin mushroom pizza.",
+      "No instructions.",
+      "Yes."
+    ],
+    "expect": {
+      "mustContain": [
+        "pending human approval"
+      ]
+    }
+  },
+  "sessionId": "3ac8333e-9ceb-463a-9071-5b61e7568930",
+  "transcript": [
+    {
+      "user": "Pickup.",
+      "assistant": "Great, pickup. What name should I put on the order?",
+      "statusCode": 200
+    },
+    {
+      "user": "Purple thunder elevator.",
+      "assistant": "Thanks. What is the best phone number for this order?",
+      "statusCode": 200
+    },
+    {
+      "user": "I forgot the triangle cloud.",
+      "assistant": "What would you like to order today?",
+      "statusCode": 200
+    },
+    {
+      "user": "Name is Quinn.",
+      "assistant": "I can add pizza, wings, or drinks. For pizza, tell me size, crust, and toppings.",
+      "statusCode": 200
+    },
+    {
+      "user": "555-909-0000",
+      "assistant": "I can add pizza, wings, or drinks. For pizza, tell me size, crust, and toppings.",
+      "statusCode": 200
+    },
+    {
+      "user": "One medium thin mushroom pizza.",
+      "assistant": "I can add pizza, wings, or drinks. For pizza, tell me size, crust, and toppings.",
+      "statusCode": 200
+    },
+    {
+      "user": "No instructions.",
+      "assistant": "I can add pizza, wings, or drinks. For pizza, tell me size, crust, and toppings.",
+      "statusCode": 200
+    },
+    {
+      "user": "Yes.",
+      "assistant": "I can add pizza, wings, or drinks. For pizza, tell me size, crust, and toppings.",
+      "statusCode": 200
+    }
+  ]
+}

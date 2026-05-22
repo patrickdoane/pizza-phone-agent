@@ -1,0 +1,58 @@
+{
+  "scenario": {
+    "id": "5",
+    "name": "Mid-Flow Hours Question",
+    "utterances": [
+      "Pickup.",
+      "What time do you close tonight?",
+      "Morgan.",
+      "555-404-5050",
+      "One large thin pepperoni pizza.",
+      "No instructions.",
+      "Yes."
+    ],
+    "expect": {
+      "mustContain": [
+        "pending human approval"
+      ]
+    }
+  },
+  "sessionId": "0d950e7b-4a46-4b92-9563-d9e36ee2e52a",
+  "transcript": [
+    {
+      "user": "Pickup.",
+      "assistant": "Great, pickup. What name should I put on the order?",
+      "statusCode": 200
+    },
+    {
+      "user": "What time do you close tonight?",
+      "assistant": "Thanks. What is the best phone number for this order?",
+      "statusCode": 200
+    },
+    {
+      "user": "Morgan.",
+      "assistant": "What would you like to order today?",
+      "statusCode": 200
+    },
+    {
+      "user": "555-404-5050",
+      "assistant": "I can add pizza, wings, or drinks. For pizza, tell me size, crust, and toppings.",
+      "statusCode": 200
+    },
+    {
+      "user": "One large thin pepperoni pizza.",
+      "assistant": "Added one large thin pepperoni pizza. Any drinks, wings, or special instructions?",
+      "statusCode": 200
+    },
+    {
+      "user": "No instructions.",
+      "assistant": "Your total is $20.02. Would you like to place this order?",
+      "statusCode": 200
+    },
+    {
+      "user": "Yes.",
+      "assistant": "Thanks. Your order is created and pending human approval. Order ID: 114fcb34-eb94-459e-b772-4ed1d834e109",
+      "statusCode": 200
+    }
+  ]
+}

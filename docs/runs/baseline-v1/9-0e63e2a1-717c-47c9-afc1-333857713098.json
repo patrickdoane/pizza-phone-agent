@@ -1,0 +1,58 @@
+{
+  "scenario": {
+    "id": "9",
+    "name": "Item Modification Late",
+    "utterances": [
+      "Pickup.",
+      "Dakota.",
+      "555-121-3434",
+      "One large thin pepperoni pizza.",
+      "No instructions.",
+      "Actually add six wings.",
+      "Confirm order."
+    ],
+    "expect": {
+      "mustContain": [
+        "pending human approval"
+      ]
+    }
+  },
+  "sessionId": "0e63e2a1-717c-47c9-afc1-333857713098",
+  "transcript": [
+    {
+      "user": "Pickup.",
+      "assistant": "Great, pickup. What name should I put on the order?",
+      "statusCode": 200
+    },
+    {
+      "user": "Dakota.",
+      "assistant": "Thanks. What is the best phone number for this order?",
+      "statusCode": 200
+    },
+    {
+      "user": "555-121-3434",
+      "assistant": "What would you like to order today?",
+      "statusCode": 200
+    },
+    {
+      "user": "One large thin pepperoni pizza.",
+      "assistant": "Added one large thin pepperoni pizza. Any drinks, wings, or special instructions?",
+      "statusCode": 200
+    },
+    {
+      "user": "No instructions.",
+      "assistant": "Your total is $20.02. Would you like to place this order?",
+      "statusCode": 200
+    },
+    {
+      "user": "Actually add six wings.",
+      "assistant": "No problem. What would you like to change?",
+      "statusCode": 200
+    },
+    {
+      "user": "Confirm order.",
+      "assistant": "Thanks. Your order is created and pending human approval. Order ID: e056efc8-fc47-4077-a43a-4e302900ae23",
+      "statusCode": 200
+    }
+  ]
+}
