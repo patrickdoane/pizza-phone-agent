@@ -17,6 +17,7 @@ export type PizzaPresetSeed = {
 };
 
 export const menuSeed = {
+  version: 2,
   taxRate: 0.0825,
   store: {
     name: "Pizza Phone",

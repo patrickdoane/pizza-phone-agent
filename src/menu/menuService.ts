@@ -71,8 +71,11 @@ export function seedMenu(db: Database.Database): void {
     return;
   }
 
-  const missingStoreInfo = typeof payload !== "object" || payload === null || !("store" in payload);
-  if (missingStoreInfo) {
+  const snapshot = payload as { version?: unknown; store?: unknown };
+  const snapshotVersion = typeof snapshot.version === "number" ? snapshot.version : 1;
+  const isOutdated = snapshotVersion < menuSeed.version;
+  const missingStoreInfo = typeof payload !== "object" || payload === null || !("store" in snapshot);
+  if (missingStoreInfo || isOutdated) {
     db.prepare("UPDATE menu_snapshot SET payload = ? WHERE id = 1").run(JSON.stringify(menuSeed));
   }
 }
