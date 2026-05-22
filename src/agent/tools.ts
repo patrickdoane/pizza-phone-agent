@@ -7,6 +7,17 @@ import { createPendingOrder } from "../orders/orderService.js";
 
 export const getMenuInputSchema = z.object({}).strict();
 export const getMenuOutputSchema = z.any();
+export const getStoreInfoInputSchema = z.object({}).strict();
+export const getStoreInfoOutputSchema = z.object({
+  name: z.string(),
+  phone: z.string(),
+  address: z.string(),
+  hours: z.object({
+    monThu: z.string(),
+    friSat: z.string(),
+    sunday: z.string()
+  })
+});
 
 export const findMenuItemInputSchema = z.object({ query: z.string().min(1) });
 export const findMenuItemOutputSchema = z.array(z.any());
@@ -42,6 +53,11 @@ export const requestHumanHandoffOutputSchema = z.object({ handoffRequested: z.li
 export function buildTools(db: Database.Database) {
   return {
     getMenu: () => getMenuOutputSchema.parse(getMenu(db)),
+    getStoreInfo: () => {
+      getStoreInfoInputSchema.parse({});
+      const menu = getMenu(db) as { store?: unknown };
+      return getStoreInfoOutputSchema.parse(menu.store);
+    },
     findMenuItem: (input: unknown) => {
       const parsed = findMenuItemInputSchema.parse(input);
       return findMenuItemOutputSchema.parse(findMenuItem(db, parsed.query));
