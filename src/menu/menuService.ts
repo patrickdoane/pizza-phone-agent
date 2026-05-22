@@ -57,9 +57,23 @@ export function initializeDatabase(db: Database.Database): void {
 }
 
 export function seedMenu(db: Database.Database): void {
-  const existing = db.prepare("SELECT id FROM menu_snapshot WHERE id = 1").get();
+  const existing = db.prepare("SELECT payload FROM menu_snapshot WHERE id = 1").get() as { payload: string } | undefined;
   if (!existing) {
     db.prepare("INSERT INTO menu_snapshot (id, payload) VALUES (1, ?)").run(JSON.stringify(menuSeed));
+    return;
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(existing.payload);
+  } catch {
+    db.prepare("UPDATE menu_snapshot SET payload = ? WHERE id = 1").run(JSON.stringify(menuSeed));
+    return;
+  }
+
+  const missingStoreInfo = typeof payload !== "object" || payload === null || !("store" in payload);
+  if (missingStoreInfo) {
+    db.prepare("UPDATE menu_snapshot SET payload = ? WHERE id = 1").run(JSON.stringify(menuSeed));
   }
 }
 

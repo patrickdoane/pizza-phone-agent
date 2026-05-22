@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import { z } from "zod";
 import { checkDeliveryZone, findMenuItem, getMenu, validatePizzaConfig } from "../menu/menuService.js";
+import { menuSeed } from "../menu/menuSeed.js";
 import { priceOrder } from "../menu/pricingService.js";
 import { orderDraftSchema } from "../orders/orderSchema.js";
 import { createPendingOrder } from "../orders/orderService.js";
@@ -56,7 +57,7 @@ export function buildTools(db: Database.Database) {
     getStoreInfo: () => {
       getStoreInfoInputSchema.parse({});
       const menu = getMenu(db) as { store?: unknown };
-      return getStoreInfoOutputSchema.parse(menu.store);
+      return getStoreInfoOutputSchema.parse(menu.store ?? menuSeed.store);
     },
     findMenuItem: (input: unknown) => {
       const parsed = findMenuItemInputSchema.parse(input);
