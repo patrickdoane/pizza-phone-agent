@@ -13,6 +13,13 @@ type AgentTurnResult = {
   handoffRequested?: boolean;
 };
 
+type StoreInfo = {
+  name: string;
+  phone: string;
+  address: string;
+  hours: { monThu: string; friSat: string; sunday: string };
+};
+
 function extractPhone(input: string): string | undefined {
   const match = input.match(/\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/);
   return match?.[0];
@@ -29,11 +36,60 @@ export function buildInitialPrompt(): string {
   return `${SYSTEM_PROMPT}\n\n${GREETING}`;
 }
 
+function buildResumePrompt(state: SessionState): string {
+  if (!state.fulfillmentType) {
+    return "Would you like pickup or delivery?";
+  }
+  if (!state.customerName) {
+    return "What name should I put on the order?";
+  }
+  if (!state.phoneNumber) {
+    return "What is the best phone number for this order?";
+  }
+  if (state.fulfillmentType === "delivery" && !state.deliveryAddress) {
+    return "Please share your delivery address including ZIP code.";
+  }
+  if (!state.items || state.items.length === 0) {
+    return "What would you like to order today?";
+  }
+  if (!state.specialInstructions) {
+    return "Any special instructions for the kitchen?";
+  }
+  if (!state.finalConfirmation) {
+    return "Would you like to place this order?";
+  }
+  return "Your order is already pending human approval.";
+}
+
+function maybeAnswerStoreQuestion(lower: string, store: StoreInfo, state: SessionState): string | null {
+  const asksHours = lower.includes("hour") || lower.includes("close") || lower.includes("open");
+  if (asksHours) {
+    return `Our hours are Mon-Thu ${store.hours.monThu}, Fri-Sat ${store.hours.friSat}, and Sun ${store.hours.sunday}. ${buildResumePrompt(state)}`;
+  }
+  const asksAddress = lower.includes("address") || lower.includes("located") || lower.includes("location") || lower.includes("where are");
+  if (asksAddress) {
+    return `We are at ${store.address}. ${buildResumePrompt(state)}`;
+  }
+  const asksPhone =
+    (lower.includes("phone") || lower.includes("number") || lower.includes("call back") || lower.includes("callback")) &&
+    (lower.includes("store") || lower.includes("your") || lower.includes("you") || lower.includes("contact"));
+  if (asksPhone) {
+    return `You can reach the store at ${store.phone}. ${buildResumePrompt(state)}`;
+  }
+  return null;
+}
+
 export function runAgentTurn(db: Database.Database, sessionId: string, message: string, state: SessionState): AgentTurnResult {
   const tools = buildTools(db);
   const menu = tools.getMenu() as { coupons: { code: string }[] };
+  const store = tools.getStoreInfo() as StoreInfo;
   const nextState: SessionState = { ...state, items: state.items ?? [], handoffRequested: state.handoffRequested ?? false };
   const lower = message.toLowerCase();
+
+  const storeReply = maybeAnswerStoreQuestion(lower, store, nextState);
+  if (storeReply) {
+    return { reply: storeReply, state: nextState };
+  }
 
   if (lower.includes("human") || lower.includes("representative")) {
     tools.requestHumanHandoff({ sessionId, reason: "Customer requested human" });
