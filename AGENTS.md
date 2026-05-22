@@ -19,6 +19,7 @@ These rules define how coding agents should work in this repository.
 - Run tests before committing (`npm test`).
 - Open a PR to merge into `main`; do not fast-forward from a dirty branch.
 - Include a short PR summary and testing notes.
+- Complete the PR quality checklist in `.github/pull_request_template.md`.
 
 ## Agent Execution Rules
 
