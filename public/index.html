@@ -273,7 +273,15 @@
 
         drawLineChart(document.getElementById("successChart"), success, labels, "#2e6f95", 0, 100, (v) => `${Number(v.toFixed(1))}`);
         drawLineChart(document.getElementById("turnsChart"), turns, labels, "#cc4b37", 0, Math.max(...turns, 1), (v) => `${Number(v.toFixed(1))}`);
-        drawLineChart(document.getElementById("safetyChart"), safety, labels, "#2a9d8f", 0, Math.max(...safety, 1), (v) => `${Math.round(v)}`);
+        drawLineChart(
+          document.getElementById("safetyChart"),
+          safety,
+          labels,
+          "#2a9d8f",
+          0,
+          Math.max(...safety, 1),
+          (v) => (Number.isInteger(v) ? `${v}` : `${Number(v.toFixed(1))}`)
+        );
       }
 
       main().catch((error) => {
