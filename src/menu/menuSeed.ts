@@ -11,7 +11,13 @@ export type StoreHoursSeed = {
   sunday: string;
 };
 
+export type PizzaPresetSeed = {
+  name: string;
+  toppings: string[];
+};
+
 export const menuSeed = {
+  version: 2,
   taxRate: 0.0825,
   store: {
     name: "Pizza Phone",
@@ -33,16 +39,26 @@ export const menuSeed = {
     crusts: [
       { name: "thin", priceDelta: 0 },
       { name: "hand-tossed", priceDelta: 1.5 },
-      { name: "gluten-free", priceDelta: 2.5 }
+      { name: "pan", priceDelta: 2.5 }
     ],
     toppings: [
+      { name: "cheese", price: 1.25 },
       { name: "pepperoni", price: 1.5 },
+      { name: "beef", price: 1.5 },
+      { name: "pork", price: 1.5 },
       { name: "sausage", price: 1.5 },
       { name: "mushrooms", price: 1.25 },
       { name: "onions", price: 1.0 },
       { name: "olives", price: 1.0 },
       { name: "green peppers", price: 1.0 },
       { name: "extra cheese", price: 1.75 }
+    ],
+    presets: [
+      { name: "cheese", toppings: ["cheese", "extra cheese"] },
+      { name: "pepperoni", toppings: ["cheese", "pepperoni"] },
+      { name: "beef", toppings: ["cheese", "beef"] },
+      { name: "pork", toppings: ["cheese", "pork"] },
+      { name: "supreme", toppings: ["cheese", "pepperoni", "beef", "pork", "green peppers", "onions", "mushrooms"] }
     ]
   },
   wings: [

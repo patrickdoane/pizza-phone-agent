@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validatePizzaConfig, checkDeliveryZone } from "../menu/menuService.js";
+import { validatePizzaConfig, checkDeliveryZone, getMenu } from "../menu/menuService.js";
 import { createPendingOrder } from "../orders/orderService.js";
 import { createSession } from "../sessions/sessionService.js";
 import { createTestDb } from "./testDb.js";
@@ -34,6 +34,23 @@ describe("order validation", () => {
     });
     expect(order.status).toBe("pending_human_approval");
     expect(order.id).toBeTruthy();
+    db.close();
+  });
+
+  it("supports pan crust and distinct beef/pork toppings", () => {
+    const db = createTestDb();
+    const valid = validatePizzaConfig(db, "large", "pan", ["cheese", "beef", "pork"]);
+    expect(valid.valid).toBe(true);
+    db.close();
+  });
+
+  it("exposes explicit pizza presets in menu", () => {
+    const db = createTestDb();
+    const menu = getMenu(db) as { pizza: { presets: { name: string; toppings: string[] }[] } };
+    const supreme = menu.pizza.presets.find((preset) => preset.name === "supreme");
+    expect(supreme).toBeTruthy();
+    expect(supreme?.toppings).toContain("beef");
+    expect(supreme?.toppings).toContain("pork");
     db.close();
   });
 });
