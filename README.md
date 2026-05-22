@@ -68,3 +68,15 @@ Includes tests for:
 - order total calculation
 - pending order creation
 - agent refusing non-existent coupon invention
+
+## Automated Review Workflow
+
+- Keep PRs small and focused so automated comments stay high-signal.
+- Treat automated review as first-pass feedback:
+  - fix clear correctness and safety issues directly
+  - add a short PR reply when intentionally keeping current behavior
+  - track any deferred fixes as follow-up items
+- Include evidence in PRs for behavior changes:
+  - `npm test` result
+  - `npm run eval:conversations` summary when conversation logic changes
+- Follow the PR quality checklist in `.github/pull_request_template.md` for every PR.
