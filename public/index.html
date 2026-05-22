@@ -34,6 +34,27 @@
         margin-top: 8px;
         color: var(--muted);
       }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .summary-card {
+        background: var(--card);
+        border: 1px solid #e5dfd4;
+        border-radius: 10px;
+        padding: 10px 12px;
+      }
+      .summary-card .label {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+      .summary-card .value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-top: 2px;
+      }
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -69,12 +90,31 @@
         border-radius: 6px;
         padding: 2px 6px;
       }
+      .tooltip {
+        position: fixed;
+        pointer-events: none;
+        background: #1f2a2e;
+        color: #f5f7f9;
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-size: 0.78rem;
+        transform: translate(12px, 12px);
+        opacity: 0;
+        transition: opacity 0.08s ease;
+        z-index: 20;
+        white-space: nowrap;
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
       <h1>Pizza Agent Scorecards</h1>
       <div class="meta" id="meta">Loading metrics...</div>
+      <div class="summary" id="summary" hidden>
+        <div class="summary-card"><div class="label">Latest Success Rate</div><div class="value" id="latestSuccess">-</div></div>
+        <div class="summary-card"><div class="label">Latest Median Turns</div><div class="value" id="latestTurns">-</div></div>
+        <div class="summary-card"><div class="label">Latest Safety Violations</div><div class="value" id="latestSafety">-</div></div>
+      </div>
       <div id="empty" class="empty" hidden>No scorecard runs found yet. Run <code>npm run eval:conversations</code> and <code>npm run eval:metrics</code>.</div>
       <div class="grid" id="charts" hidden>
         <section class="card">
@@ -94,17 +134,58 @@
         </section>
       </div>
     </div>
+    <div id="tooltip" class="tooltip" hidden></div>
 
     <script>
-      function drawLineChart(svg, data, color, minY, maxY) {
+      function niceTicks(minY, maxY, desiredCount) {
+        if (minY === maxY) {
+          return [minY, minY + 1];
+        }
+        const range = maxY - minY;
+        const roughStep = range / Math.max(desiredCount - 1, 1);
+        const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
+        const candidates = [1, 2, 5, 10];
+        let step = magnitude;
+        for (const c of candidates) {
+          const candidate = c * magnitude;
+          if (roughStep <= candidate) {
+            step = candidate;
+            break;
+          }
+        }
+
+        const start = Math.floor(minY / step) * step;
+        const end = Math.ceil(maxY / step) * step;
+        const ticks = [];
+        for (let v = start; v <= end + step * 0.5; v += step) {
+          ticks.push(Number(v.toFixed(6)));
+        }
+        return ticks;
+      }
+
+      function labelForRun(runId, index, length) {
+        if (length <= 1) {
+          return runId;
+        }
+        if (index === 0) {
+          return `1: ${runId}`;
+        }
+        if (index === length - 1) {
+          return `${length}: ${runId}`;
+        }
+        return `${index + 1}`;
+      }
+
+      function drawLineChart(svg, data, labels, color, minY, maxY, formatter) {
         const width = 320;
         const height = 180;
-        const padding = { top: 16, right: 16, bottom: 28, left: 30 };
+        const padding = { top: 16, right: 16, bottom: 32, left: 42 };
         const plotW = width - padding.left - padding.right;
         const plotH = height - padding.top - padding.bottom;
 
         const yRange = maxY - minY || 1;
         const xStep = data.length > 1 ? plotW / (data.length - 1) : 0;
+        const ticks = niceTicks(minY, maxY, 5);
 
         const points = data.map((v, i) => {
           const x = padding.left + i * xStep;
@@ -114,20 +195,52 @@
 
         const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
 
+        const yGrid = ticks
+          .map((tick) => {
+            const y = padding.top + plotH - ((tick - minY) / yRange) * plotH;
+            return `<line x1="${padding.left}" y1="${y.toFixed(1)}" x2="${width - padding.right}" y2="${y.toFixed(1)}" stroke="#ece7de" />
+              <text x="${padding.left - 6}" y="${(y + 3).toFixed(1)}" font-size="9" text-anchor="end" fill="#6a7680">${formatter(tick)}</text>`;
+          })
+          .join("");
+
         svg.innerHTML = `
+          ${yGrid}
           <line x1="${padding.left}" y1="${padding.top + plotH}" x2="${width - padding.right}" y2="${padding.top + plotH}" stroke="#d7d2c8" />
           <line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${padding.top + plotH}" stroke="#d7d2c8" />
           <path d="${path}" fill="none" stroke="${color}" stroke-width="2.8" stroke-linecap="round" />
-          ${points.map((p) => `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="${color}" />`).join("")}
-          <text x="${padding.left}" y="${height - 8}" font-size="10" fill="#6a7680">first run</text>
-          <text x="${width - padding.right - 40}" y="${height - 8}" font-size="10" fill="#6a7680">latest run</text>
+          ${points
+            .map(
+              (p, i) =>
+                `<circle class="point" data-label="${labels[i]}" data-value="${formatter(data[i])}" cx="${p[0]}" cy="${p[1]}" r="3.2" fill="${color}" />`
+            )
+            .join("")}
+          <text x="${padding.left}" y="${height - 8}" font-size="9" fill="#6a7680">${labelForRun(labels[0], 0, labels.length)}</text>
+          <text x="${width - padding.right}" y="${height - 8}" font-size="9" text-anchor="end" fill="#6a7680">${labelForRun(labels[labels.length - 1], labels.length - 1, labels.length)}</text>
         `;
+
+        const tooltip = document.getElementById("tooltip");
+        svg.querySelectorAll(".point").forEach((point) => {
+          point.addEventListener("mouseenter", (event) => {
+            tooltip.hidden = false;
+            tooltip.style.opacity = "1";
+            tooltip.textContent = `${event.target.dataset.label} - ${event.target.dataset.value}`;
+          });
+          point.addEventListener("mousemove", (event) => {
+            tooltip.style.left = `${event.clientX}px`;
+            tooltip.style.top = `${event.clientY}px`;
+          });
+          point.addEventListener("mouseleave", () => {
+            tooltip.style.opacity = "0";
+            tooltip.hidden = true;
+          });
+        });
       }
 
       async function main() {
         const meta = document.getElementById("meta");
         const empty = document.getElementById("empty");
         const charts = document.getElementById("charts");
+        const summary = document.getElementById("summary");
 
         const response = await fetch("./metrics.json", { cache: "no-store" });
         if (!response.ok) {
@@ -146,14 +259,29 @@
         const generated = new Date(payload.generatedAt).toLocaleString();
         meta.textContent = `Runs: ${runs.length} • Last generated: ${generated}`;
         charts.hidden = false;
+        summary.hidden = false;
 
         const success = runs.map((r) => r.successRate);
         const turns = runs.map((r) => r.medianTurns);
         const safety = runs.map((r) => r.safetyViolations);
+        const labels = runs.map((r) => r.runId);
+        const latest = runs[runs.length - 1];
 
-        drawLineChart(document.getElementById("successChart"), success, "#2e6f95", 0, 100);
-        drawLineChart(document.getElementById("turnsChart"), turns, "#cc4b37", 0, Math.max(...turns, 1));
-        drawLineChart(document.getElementById("safetyChart"), safety, "#2a9d8f", 0, Math.max(...safety, 1));
+        document.getElementById("latestSuccess").textContent = `${latest.successRate}%`;
+        document.getElementById("latestTurns").textContent = `${latest.medianTurns}`;
+        document.getElementById("latestSafety").textContent = `${latest.safetyViolations}`;
+
+        drawLineChart(document.getElementById("successChart"), success, labels, "#2e6f95", 0, 100, (v) => `${Number(v.toFixed(1))}`);
+        drawLineChart(document.getElementById("turnsChart"), turns, labels, "#cc4b37", 0, Math.max(...turns, 1), (v) => `${Number(v.toFixed(1))}`);
+        drawLineChart(
+          document.getElementById("safetyChart"),
+          safety,
+          labels,
+          "#2a9d8f",
+          0,
+          Math.max(...safety, 1),
+          (v) => (Number.isInteger(v) ? `${v}` : `${Number(v.toFixed(1))}`)
+        );
       }
 
       main().catch((error) => {
