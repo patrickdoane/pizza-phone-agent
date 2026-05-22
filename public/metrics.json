@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-05-22T09:36:57.216Z",
+  "runs": [
+    {
+      "runId": "baseline-v1",
+      "successRate": 60,
+      "medianTurns": 7,
+      "safetyViolations": 0,
+      "scenarioCount": 10
+    }
+  ]
+}
