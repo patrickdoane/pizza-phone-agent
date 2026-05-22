@@ -94,6 +94,8 @@ Includes tests for:
 npm run eval:metrics
 ```
 
+- `public/metrics.json` is the canonical published trend history. Commit it after local eval runs.
+
 - Local eval workflow:
 
 ```bash
@@ -103,3 +105,4 @@ npm run eval:metrics
 ```
 
 - The `Deploy Scorecard Page` GitHub Actions workflow publishes `public/` to GitHub Pages on pushes to `main`.
+- CI does not regenerate metrics from `docs/runs/`; this avoids silent history resets in clean checkouts.

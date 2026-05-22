@@ -96,8 +96,10 @@ async function buildMetrics(): Promise<MetricsPayload> {
   let runDirs: string[] = [];
   try {
     runDirs = await readdir(RUNS_DIR);
-  } catch {
-    return { generatedAt: new Date().toISOString(), runs: [] };
+  } catch (error) {
+    throw new Error(
+      `Scorecard source directory not found: ${RUNS_DIR}. Run npm run eval:conversations first or set EVAL_RUNS_DIR.`
+    );
   }
 
   const runs: RunMetrics[] = [];
