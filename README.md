@@ -80,3 +80,29 @@ Includes tests for:
   - `npm test` result
   - `npm run eval:conversations` summary when conversation logic changes
 - Follow the PR quality checklist in `.github/pull_request_template.md` for every PR.
+
+## Public Scorecard Page
+
+- This repo includes a minimal public dashboard for conversation-eval trends.
+- The page reads `public/metrics.json` and charts:
+  - success rate
+  - median turns
+  - safety violations
+- Generate metrics from local run outputs:
+
+```bash
+npm run eval:metrics
+```
+
+- `public/metrics.json` is the canonical published trend history. Commit it after local eval runs.
+
+- Local eval workflow:
+
+```bash
+npm run dev
+npm run eval:conversations
+npm run eval:metrics
+```
+
+- The `Deploy Scorecard Page` GitHub Actions workflow publishes `public/` to GitHub Pages on pushes to `main`.
+- CI does not regenerate metrics from `docs/runs/`; this avoids silent history resets in clean checkouts.

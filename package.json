@@ -10,7 +10,8 @@
     "simulate": "tsx src/cli/simulateCall.ts",
     "test": "vitest run",
     "seed": "tsx src/index.ts --seed-only",
-    "eval:conversations": "tsx scripts/runConversationEval.ts"
+    "eval:conversations": "tsx scripts/runConversationEval.ts",
+    "eval:metrics": "tsx scripts/buildScorecardMetrics.ts"
   },
   "engines": {
     "node": ">=20"

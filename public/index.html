@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pizza Agent Scorecards</title>
+    <style>
+      :root {
+        --bg: #f4f1e8;
+        --card: #fffef9;
+        --ink: #1f2a2e;
+        --muted: #54646d;
+        --accent: #cc4b37;
+        --line: #2e6f95;
+        --line-2: #cc4b37;
+        --line-3: #2a9d8f;
+      }
+      body {
+        margin: 0;
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at top right, #f8eadb 0%, var(--bg) 42%, #ece7dc 100%);
+      }
+      .wrap {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 28px 18px 40px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 2rem;
+      }
+      .meta {
+        margin-top: 8px;
+        color: var(--muted);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 14px;
+        margin-top: 20px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid #e5dfd4;
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: 0 4px 20px rgba(31, 42, 46, 0.05);
+      }
+      .card h2 {
+        margin: 0 0 10px;
+        font-size: 1.05rem;
+      }
+      svg {
+        width: 100%;
+        height: 180px;
+        display: block;
+      }
+      .legend {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .empty {
+        margin-top: 18px;
+        color: var(--muted);
+      }
+      code {
+        background: #f0ece3;
+        border-radius: 6px;
+        padding: 2px 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Pizza Agent Scorecards</h1>
+      <div class="meta" id="meta">Loading metrics...</div>
+      <div id="empty" class="empty" hidden>No scorecard runs found yet. Run <code>npm run eval:conversations</code> and <code>npm run eval:metrics</code>.</div>
+      <div class="grid" id="charts" hidden>
+        <section class="card">
+          <h2>Success Rate (%)</h2>
+          <svg id="successChart" viewBox="0 0 320 180"></svg>
+          <div class="legend">Higher is better.</div>
+        </section>
+        <section class="card">
+          <h2>Median Turns</h2>
+          <svg id="turnsChart" viewBox="0 0 320 180"></svg>
+          <div class="legend">Lower generally means smoother calls.</div>
+        </section>
+        <section class="card">
+          <h2>Safety Violations</h2>
+          <svg id="safetyChart" viewBox="0 0 320 180"></svg>
+          <div class="legend">Target stays at zero.</div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      function drawLineChart(svg, data, color, minY, maxY) {
+        const width = 320;
+        const height = 180;
+        const padding = { top: 16, right: 16, bottom: 28, left: 30 };
+        const plotW = width - padding.left - padding.right;
+        const plotH = height - padding.top - padding.bottom;
+
+        const yRange = maxY - minY || 1;
+        const xStep = data.length > 1 ? plotW / (data.length - 1) : 0;
+
+        const points = data.map((v, i) => {
+          const x = padding.left + i * xStep;
+          const y = padding.top + plotH - ((v - minY) / yRange) * plotH;
+          return [x, y];
+        });
+
+        const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+
+        svg.innerHTML = `
+          <line x1="${padding.left}" y1="${padding.top + plotH}" x2="${width - padding.right}" y2="${padding.top + plotH}" stroke="#d7d2c8" />
+          <line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${padding.top + plotH}" stroke="#d7d2c8" />
+          <path d="${path}" fill="none" stroke="${color}" stroke-width="2.8" stroke-linecap="round" />
+          ${points.map((p) => `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="${color}" />`).join("")}
+          <text x="${padding.left}" y="${height - 8}" font-size="10" fill="#6a7680">first run</text>
+          <text x="${width - padding.right - 40}" y="${height - 8}" font-size="10" fill="#6a7680">latest run</text>
+        `;
+      }
+
+      async function main() {
+        const meta = document.getElementById("meta");
+        const empty = document.getElementById("empty");
+        const charts = document.getElementById("charts");
+
+        const response = await fetch("./metrics.json", { cache: "no-store" });
+        if (!response.ok) {
+          meta.textContent = "Unable to load metrics.json";
+          return;
+        }
+        const payload = await response.json();
+        const runs = payload.runs || [];
+
+        if (!runs.length) {
+          meta.textContent = "No runs yet.";
+          empty.hidden = false;
+          return;
+        }
+
+        const generated = new Date(payload.generatedAt).toLocaleString();
+        meta.textContent = `Runs: ${runs.length} • Last generated: ${generated}`;
+        charts.hidden = false;
+
+        const success = runs.map((r) => r.successRate);
+        const turns = runs.map((r) => r.medianTurns);
+        const safety = runs.map((r) => r.safetyViolations);
+
+        drawLineChart(document.getElementById("successChart"), success, "#2e6f95", 0, 100);
+        drawLineChart(document.getElementById("turnsChart"), turns, "#cc4b37", 0, Math.max(...turns, 1));
+        drawLineChart(document.getElementById("safetyChart"), safety, "#2a9d8f", 0, Math.max(...safety, 1));
+      }
+
+      main().catch((error) => {
+        document.getElementById("meta").textContent = `Failed to render charts: ${error.message}`;
+      });
+    </script>
+  </body>
+</html>
