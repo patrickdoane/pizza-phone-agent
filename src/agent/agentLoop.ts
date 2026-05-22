@@ -50,6 +50,9 @@ function buildResumePrompt(state: SessionState): string {
   if (state.fulfillmentType === "delivery" && !state.deliveryAddress) {
     return "Please share your delivery address including ZIP code.";
   }
+  if ((state.pizzaLines ?? []).some((line) => line.status !== "complete")) {
+    return "What size and crust should I use for these pizzas?";
+  }
   if ((!state.items || state.items.length === 0) && (!state.pizzaLines || state.pizzaLines.length === 0)) {
     return "What would you like to order today?";
   }

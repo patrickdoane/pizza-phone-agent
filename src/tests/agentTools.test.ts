@@ -45,4 +45,29 @@ describe("agent tools behavior", () => {
     expect(sized.state.items[0]).toMatchObject({ type: "pizza", size: "large", crust: "pan" });
     db.close();
   });
+
+  it("resumes to size/crust prompt when grouped lines are incomplete after store question", () => {
+    const db = createTestDb();
+    const result = runAgentTurn(db, "s4", "What time do you close tonight?", {
+      fulfillmentType: "pickup",
+      customerName: "Jordan",
+      phoneNumber: "555-000-1111",
+      items: [],
+      pizzaLines: [
+        {
+          lineId: "line-1",
+          quantity: 3,
+          preset: "cheese",
+          toppings: ["cheese", "extra cheese"],
+          status: "incomplete",
+          customerLabel: "3 cheese"
+        }
+      ],
+      unclearCount: 0,
+      handoffRequested: false
+    });
+    expect(result.reply).toContain("Our hours are");
+    expect(result.reply).toContain("What size and crust should I use for these pizzas?");
+    db.close();
+  });
 });
