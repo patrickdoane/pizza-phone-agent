@@ -1,8 +1,9 @@
 import Database from "better-sqlite3";
 import { SYSTEM_PROMPT } from "./systemPrompt.js";
 import { buildTools } from "./tools.js";
-import { SessionState } from "../sessions/sessionSchema.js";
+import { SessionState, SessionStateInput, sessionStateSchema } from "../sessions/sessionSchema.js";
 import { orderDraftSchema } from "../orders/orderSchema.js";
+import { applySizeAndCrustToIncompleteLines, parseGroupedPizzaOrder } from "./pizzaLineParser.js";
 
 export const GREETING = "Thanks for calling. I’m an AI assistant that can help take your order. Would you like pickup or delivery?";
 
@@ -49,7 +50,10 @@ function buildResumePrompt(state: SessionState): string {
   if (state.fulfillmentType === "delivery" && !state.deliveryAddress) {
     return "Please share your delivery address including ZIP code.";
   }
-  if (!state.items || state.items.length === 0) {
+  if ((state.pizzaLines ?? []).some((line) => line.status !== "complete")) {
+    return "What size and crust should I use for these pizzas?";
+  }
+  if ((!state.items || state.items.length === 0) && (!state.pizzaLines || state.pizzaLines.length === 0)) {
     return "What would you like to order today?";
   }
   if (!state.specialInstructions) {
@@ -59,6 +63,33 @@ function buildResumePrompt(state: SessionState): string {
     return "Would you like to place this order?";
   }
   return "Your order is already pending human approval.";
+}
+
+function summarizePizzaLines(state: SessionState): string {
+  const lines = state.pizzaLines ?? [];
+  if (lines.length === 0) {
+    return "";
+  }
+  return lines
+    .map((line) => `${line.quantity} ${line.preset ?? "custom"}${line.quantity === 1 ? " pizza" : " pizzas"}`)
+    .join(", ");
+}
+
+function toOrderItemsFromPizzaLines(state: SessionState) {
+  return (state.pizzaLines ?? []).map((line) => ({
+    type: "pizza" as const,
+    quantity: line.quantity,
+    size: line.size ?? "",
+    crust: line.crust ?? "",
+    toppings: line.toppings
+  }));
+}
+
+function parseSizeAndCrust(message: string, sizes: string[], crusts: string[]): { size?: string; crust?: string } {
+  const lower = message.toLowerCase();
+  const size = sizes.find((item) => lower.includes(item.toLowerCase()));
+  const crust = crusts.find((item) => lower.includes(item.toLowerCase()));
+  return { size, crust };
 }
 
 function maybeAnswerStoreQuestion(lower: string, store: StoreInfo, state: SessionState): string | null {
@@ -79,11 +110,24 @@ function maybeAnswerStoreQuestion(lower: string, store: StoreInfo, state: Sessio
   return null;
 }
 
-export function runAgentTurn(db: Database.Database, sessionId: string, message: string, state: SessionState): AgentTurnResult {
+export function runAgentTurn(db: Database.Database, sessionId: string, message: string, state: SessionStateInput): AgentTurnResult {
   const tools = buildTools(db);
-  const menu = tools.getMenu() as { coupons: { code: string }[] };
+  const menu = tools.getMenu() as {
+    coupons: { code: string }[];
+    pizza: {
+      sizes: { name: string }[];
+      crusts: { name: string }[];
+      presets?: { name: string; toppings: string[] }[];
+    };
+  };
   const store = tools.getStoreInfo() as StoreInfo;
-  const nextState: SessionState = { ...state, items: state.items ?? [], handoffRequested: state.handoffRequested ?? false };
+  const nextState: SessionState = sessionStateSchema.parse({
+    ...state,
+    items: state.items ?? [],
+    pizzaLines: state.pizzaLines ?? [],
+    unclearCount: state.unclearCount ?? 0,
+    handoffRequested: state.handoffRequested ?? false
+  });
   const lower = message.toLowerCase();
 
   const storeReply = maybeAnswerStoreQuestion(lower, store, nextState);
@@ -139,7 +183,53 @@ export function runAgentTurn(db: Database.Database, sessionId: string, message: 
     return { reply: "Thanks. What would you like to order today?", state: nextState };
   }
 
+  if (nextState.pizzaLines.length > 0 && nextState.items.length === 0) {
+    const parsed = parseSizeAndCrust(
+      message,
+      menu.pizza.sizes.map((size) => size.name),
+      menu.pizza.crusts.map((crust) => crust.name)
+    );
+    nextState.pizzaLines = applySizeAndCrustToIncompleteLines(nextState.pizzaLines, parsed.size, parsed.crust);
+
+    if (nextState.pizzaLines.some((line) => line.status !== "complete")) {
+      return {
+        reply: `I have ${summarizePizzaLines(nextState)}. Please share one size and one crust for these pizzas, for example large thin.`,
+        state: nextState
+      };
+    }
+
+    nextState.items = toOrderItemsFromPizzaLines(nextState);
+    return {
+      reply: `Great, I have ${summarizePizzaLines(nextState)}. Any drinks, wings, or special instructions?`,
+      state: nextState
+    };
+  }
+
   if (nextState.items.length === 0) {
+    const grouped = parseGroupedPizzaOrder(
+      message,
+      menu.pizza.presets ?? [],
+      menu.pizza.sizes.map((size) => size.name),
+      menu.pizza.crusts.map((crust) => crust.name)
+    );
+    if (grouped) {
+      nextState.pizzaLines = grouped.lines;
+      nextState.items = [];
+
+      if (grouped.lines.every((line) => line.status === "complete")) {
+        nextState.items = toOrderItemsFromPizzaLines(nextState);
+        return {
+          reply: `Added ${summarizePizzaLines(nextState)}. Any drinks, wings, or special instructions?`,
+          state: nextState
+        };
+      }
+
+      return {
+        reply: `Added ${summarizePizzaLines(nextState)}. What size and crust should I use for these pizzas?`,
+        state: nextState
+      };
+    }
+
     if (lower.includes("large") && lower.includes("pizza")) {
       nextState.items.push({ type: "pizza", quantity: 1, size: "large", crust: "thin", toppings: ["pepperoni"] });
       return { reply: "Added one large thin pepperoni pizza. Any drinks, wings, or special instructions?", state: nextState };

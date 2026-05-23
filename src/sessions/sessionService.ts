@@ -7,7 +7,7 @@ const now = () => new Date().toISOString();
 export function createSession(db: Database.Database) {
   const id = randomUUID();
   const ts = now();
-  const state: SessionState = { items: [], handoffRequested: false };
+  const state: SessionState = { items: [], pizzaLines: [], unclearCount: 0, handoffRequested: false };
   db.prepare("INSERT INTO sessions (id, status, created_at, updated_at, state_json) VALUES (?, ?, ?, ?, ?)").run(
     id,
     "active",
