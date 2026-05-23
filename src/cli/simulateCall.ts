@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { GREETING, runAgentTurn } from "../agent/agentLoop.js";
+import { composeReplyIfEnabled } from "../agent/replyComposer.js";
 import { config } from "../config.js";
 import { initializeDatabase, seedMenu } from "../menu/menuService.js";
 import { addSessionMessage, createSession, getSession, updateSessionState } from "../sessions/sessionService.js";
@@ -30,8 +31,12 @@ async function simulate() {
         throw new Error("Session missing");
       }
       const result = runAgentTurn(db, session.id, user, current.state);
-      console.log(`Agent: ${result.reply}`);
-      addSessionMessage(db, session.id, "assistant", result.reply);
+      const composed = await composeReplyIfEnabled(user, result.reply);
+      if (config.probabilisticReplyComposerDebug) {
+        console.log(`Composer: ${composed.reason}`);
+      }
+      console.log(`Agent: ${composed.reply}`);
+      addSessionMessage(db, session.id, "assistant", composed.reply);
       updateSessionState(db, session.id, result.state, result.handoffRequested ? "handoff_requested" : current.status);
     }
   } finally {
