@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import { SYSTEM_PROMPT } from "./systemPrompt.js";
 import { buildTools } from "./tools.js";
-import { SessionState } from "../sessions/sessionSchema.js";
+import { SessionState, SessionStateInput, sessionStateSchema } from "../sessions/sessionSchema.js";
 import { orderDraftSchema } from "../orders/orderSchema.js";
 import { applySizeAndCrustToIncompleteLines, parseGroupedPizzaOrder } from "./pizzaLineParser.js";
 
@@ -110,7 +110,7 @@ function maybeAnswerStoreQuestion(lower: string, store: StoreInfo, state: Sessio
   return null;
 }
 
-export function runAgentTurn(db: Database.Database, sessionId: string, message: string, state: SessionState): AgentTurnResult {
+export function runAgentTurn(db: Database.Database, sessionId: string, message: string, state: SessionStateInput): AgentTurnResult {
   const tools = buildTools(db);
   const menu = tools.getMenu() as {
     coupons: { code: string }[];
@@ -121,13 +121,13 @@ export function runAgentTurn(db: Database.Database, sessionId: string, message: 
     };
   };
   const store = tools.getStoreInfo() as StoreInfo;
-  const nextState: SessionState = {
+  const nextState: SessionState = sessionStateSchema.parse({
     ...state,
     items: state.items ?? [],
     pizzaLines: state.pizzaLines ?? [],
     unclearCount: state.unclearCount ?? 0,
     handoffRequested: state.handoffRequested ?? false
-  };
+  });
   const lower = message.toLowerCase();
 
   const storeReply = maybeAnswerStoreQuestion(lower, store, nextState);

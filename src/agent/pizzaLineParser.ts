@@ -33,26 +33,25 @@ export function parseGroupedPizzaOrder(
     return null;
   }
 
-  const lines = matches
-    .map((match) => {
-      const quantity = Number(match[1]);
-      const presetName = match[2].toLowerCase();
-      const preset = presetMap.get(presetName);
-      if (!preset || Number.isNaN(quantity) || quantity <= 0) {
-        return null;
-      }
-      return {
-        lineId: randomUUID(),
-        quantity,
-        preset: preset.name as PizzaLine["preset"],
-        size: parsedSize,
-        crust: parsedCrust,
-        toppings: [...preset.toppings],
-        status: parsedSize && parsedCrust ? "complete" : "incomplete",
-        customerLabel: `${quantity} ${preset.name}`
-      } satisfies PizzaLine;
-    })
-    .filter((line): line is PizzaLine => line !== null);
+  const lines: PizzaLine[] = [];
+  for (const match of matches) {
+    const quantity = Number(match[1]);
+    const presetName = match[2].toLowerCase();
+    const preset = presetMap.get(presetName);
+    if (!preset || Number.isNaN(quantity) || quantity <= 0) {
+      continue;
+    }
+    lines.push({
+      lineId: randomUUID(),
+      quantity,
+      preset: preset.name as PizzaLine["preset"],
+      size: parsedSize,
+      crust: parsedCrust,
+      toppings: [...preset.toppings],
+      status: parsedSize && parsedCrust ? "complete" : "incomplete",
+      customerLabel: `${quantity} ${preset.name}`
+    });
+  }
 
   if (lines.length === 0) {
     return null;

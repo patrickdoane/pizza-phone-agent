@@ -43,4 +43,5 @@ export const sessionMessageSchema = z.object({
 });
 
 export type SessionState = z.infer<typeof sessionStateSchema>;
+export type SessionStateInput = z.input<typeof sessionStateSchema>;
 export type PizzaLine = z.infer<typeof pizzaLineSchema>;
