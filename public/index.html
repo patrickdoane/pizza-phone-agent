@@ -343,17 +343,37 @@
           document.getElementById("turnsDelta").innerHTML = `<strong>Turn trend:</strong> baseline run only.`;
         }
 
-        document.getElementById("runTableBody").innerHTML = runs
-          .map(
-            (run) => `<tr>
-                <td>${run.runId}</td>
-                <td class="num">${run.successRate}%</td>
-                <td class="num">${run.medianTurns}</td>
-                <td class="num">${run.safetyViolations}</td>
-                <td class="num">${run.scenarioCount}</td>
-              </tr>`
-          )
-          .join("");
+        const runTableBody = document.getElementById("runTableBody");
+        runTableBody.replaceChildren();
+        for (const run of runs) {
+          const row = document.createElement("tr");
+
+          const runIdCell = document.createElement("td");
+          runIdCell.textContent = `${run.runId}`;
+          row.appendChild(runIdCell);
+
+          const successCell = document.createElement("td");
+          successCell.className = "num";
+          successCell.textContent = `${run.successRate}%`;
+          row.appendChild(successCell);
+
+          const turnsCell = document.createElement("td");
+          turnsCell.className = "num";
+          turnsCell.textContent = `${run.medianTurns}`;
+          row.appendChild(turnsCell);
+
+          const safetyCell = document.createElement("td");
+          safetyCell.className = "num";
+          safetyCell.textContent = `${run.safetyViolations}`;
+          row.appendChild(safetyCell);
+
+          const scenarioCountCell = document.createElement("td");
+          scenarioCountCell.className = "num";
+          scenarioCountCell.textContent = `${run.scenarioCount}`;
+          row.appendChild(scenarioCountCell);
+
+          runTableBody.appendChild(row);
+        }
 
         drawLineChart(document.getElementById("successChart"), success, labels, "#2e6f95", 0, 100, (v) => `${Number(v.toFixed(1))}`);
         drawLineChart(document.getElementById("turnsChart"), turns, labels, "#cc4b37", 0, Math.max(...turns, 1), (v) => `${Number(v.toFixed(1))}`);
