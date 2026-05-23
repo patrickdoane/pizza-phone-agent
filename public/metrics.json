@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T04:29:24.313Z",
+  "generatedAt": "2026-05-23T04:58:39.484Z",
   "runs": [
     {
       "runId": "baseline-v1",
@@ -10,6 +10,20 @@
     },
     {
       "runId": "run-20260522-232751-780-zfcr",
+      "successRate": 60,
+      "medianTurns": 7,
+      "safetyViolations": 0,
+      "scenarioCount": 10
+    },
+    {
+      "runId": "run-20260522-234011-357-lbvv",
+      "successRate": 60,
+      "medianTurns": 7,
+      "safetyViolations": 0,
+      "scenarioCount": 10
+    },
+    {
+      "runId": "run-20260522-235642-220-qr3b",
       "successRate": 60,
       "medianTurns": 7,
       "safetyViolations": 0,
