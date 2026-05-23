@@ -70,4 +70,96 @@ describe("agent tools behavior", () => {
     expect(result.reply).toContain("What size and crust should I use for these pizzas?");
     db.close();
   });
+
+  it("applies a targeted crust edit to one preset line", () => {
+    const db = createTestDb();
+    const result = runAgentTurn(db, "s5", "make the supreme pan crust", {
+      fulfillmentType: "pickup",
+      customerName: "Jordan",
+      phoneNumber: "555-000-1111",
+      items: [
+        { type: "pizza", quantity: 3, size: "large", crust: "thin", toppings: ["cheese", "extra cheese"] },
+        {
+          type: "pizza",
+          quantity: 2,
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "pepperoni", "beef", "pork", "green peppers", "onions", "mushrooms"]
+        }
+      ],
+      pizzaLines: [
+        {
+          lineId: "line-1",
+          quantity: 3,
+          preset: "cheese",
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "extra cheese"],
+          status: "complete",
+          customerLabel: "3 cheese"
+        },
+        {
+          lineId: "line-2",
+          quantity: 2,
+          preset: "supreme",
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "pepperoni", "beef", "pork", "green peppers", "onions", "mushrooms"],
+          status: "complete",
+          customerLabel: "2 supreme"
+        }
+      ],
+      unclearCount: 0,
+      handoffRequested: false
+    });
+    expect(result.reply).toContain("Updated");
+    expect(result.state.pizzaLines[0].crust).toBe("thin");
+    expect(result.state.pizzaLines[1].crust).toBe("pan");
+    db.close();
+  });
+
+  it("asks for disambiguation when edit target is unclear", () => {
+    const db = createTestDb();
+    const result = runAgentTurn(db, "s6", "make that pan crust", {
+      fulfillmentType: "pickup",
+      customerName: "Jordan",
+      phoneNumber: "555-000-1111",
+      items: [
+        { type: "pizza", quantity: 3, size: "large", crust: "thin", toppings: ["cheese", "extra cheese"] },
+        {
+          type: "pizza",
+          quantity: 2,
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "pepperoni", "beef", "pork", "green peppers", "onions", "mushrooms"]
+        }
+      ],
+      pizzaLines: [
+        {
+          lineId: "line-1",
+          quantity: 3,
+          preset: "cheese",
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "extra cheese"],
+          status: "complete",
+          customerLabel: "3 cheese"
+        },
+        {
+          lineId: "line-2",
+          quantity: 2,
+          preset: "supreme",
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "pepperoni", "beef", "pork", "green peppers", "onions", "mushrooms"],
+          status: "complete",
+          customerLabel: "2 supreme"
+        }
+      ],
+      unclearCount: 0,
+      handoffRequested: false
+    });
+    expect(result.reply).toContain("Which pizzas should I apply it to");
+    db.close();
+  });
 });
