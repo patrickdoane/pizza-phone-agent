@@ -21,6 +21,16 @@ type StoreInfo = {
   hours: { monThu: string; friSat: string; sunday: string };
 };
 
+type PizzaEditSubtopic = "size" | "crust" | "toppings";
+
+type ParsedPizzaEdit = {
+  subtopic: PizzaEditSubtopic;
+  value?: string;
+  mode?: "add" | "remove";
+  targetPreset?: string;
+  targetAll: boolean;
+};
+
 function extractPhone(input: string): string | undefined {
   const match = input.match(/\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/);
   return match?.[0];
@@ -92,6 +102,106 @@ function parseSizeAndCrust(message: string, sizes: string[], crusts: string[]): 
   return { size, crust };
 }
 
+function parsePizzaEdit(
+  message: string,
+  sizes: string[],
+  crusts: string[],
+  presets: { name: string; toppings: string[] }[],
+  toppings: string[]
+): ParsedPizzaEdit | null {
+  const lower = message.toLowerCase();
+  const parsedSize = sizes.find((item) => lower.includes(item.toLowerCase()));
+  const parsedCrust = crusts.find((item) => lower.includes(item.toLowerCase()));
+  const mentionsAdd = lower.includes("add ");
+  const mentionsRemove =
+    lower.includes("remove ") || lower.includes("without ") || lower.includes("no ") || lower.includes("hold ");
+  const isToppingEditIntent = mentionsAdd || mentionsRemove || lower.includes("topping");
+  const parsedTopping = isToppingEditIntent
+    ? [...toppings].sort((a, b) => b.length - a.length).find((item) => lower.includes(item.toLowerCase()))
+    : undefined;
+
+  const subtopics = [Boolean(parsedSize), Boolean(parsedCrust), Boolean(parsedTopping || mentionsAdd || mentionsRemove)].filter(Boolean).length;
+  if (subtopics !== 1) {
+    return null;
+  }
+
+  const targetPreset = presets.find((preset) => lower.includes(preset.name.toLowerCase()))?.name;
+  const targetAll =
+    lower.includes("all pizzas") ||
+    lower.includes("all of them") ||
+    lower.includes("every pizza") ||
+    lower.includes("everything");
+
+  if (parsedSize) {
+    return { subtopic: "size", value: parsedSize, targetPreset, targetAll };
+  }
+  if (parsedCrust) {
+    return { subtopic: "crust", value: parsedCrust, targetPreset, targetAll };
+  }
+  if (!parsedTopping) {
+    return null;
+  }
+  return {
+    subtopic: "toppings",
+    value: parsedTopping,
+    mode: mentionsRemove ? "remove" : "add",
+    targetPreset,
+    targetAll
+  };
+}
+
+function resolveLineTargets(
+  lines: SessionState["pizzaLines"],
+  edit: ParsedPizzaEdit
+): { targetLineIds: Set<string>; ambiguous: boolean; missingPresetTarget?: string } {
+  if (lines.length === 0) {
+    return { targetLineIds: new Set(), ambiguous: false };
+  }
+  if (edit.targetAll || lines.length === 1) {
+    return { targetLineIds: new Set(lines.map((line) => line.lineId)), ambiguous: false };
+  }
+  if (edit.targetPreset) {
+    const matched = lines.filter((line) => line.preset?.toLowerCase() === edit.targetPreset?.toLowerCase());
+    if (matched.length === 0) {
+      return { targetLineIds: new Set(), ambiguous: false, missingPresetTarget: edit.targetPreset };
+    }
+    return { targetLineIds: new Set(matched.map((line) => line.lineId)), ambiguous: false };
+  }
+  return { targetLineIds: new Set(), ambiguous: true };
+}
+
+function applyPizzaEditToLines(lines: SessionState["pizzaLines"], edit: ParsedPizzaEdit, targetLineIds: Set<string>): SessionState["pizzaLines"] {
+  return lines.map((line) => {
+    if (!targetLineIds.has(line.lineId)) {
+      return line;
+    }
+    if (edit.subtopic === "size") {
+      const nextSize = edit.value ?? line.size;
+      return {
+        ...line,
+        size: nextSize,
+        status: nextSize && line.crust ? "complete" : "incomplete"
+      };
+    }
+    if (edit.subtopic === "crust") {
+      const nextCrust = edit.value ?? line.crust;
+      return {
+        ...line,
+        crust: nextCrust,
+        status: line.size && nextCrust ? "complete" : "incomplete"
+      };
+    }
+
+    const current = new Set(line.toppings);
+    if (edit.mode === "remove") {
+      current.delete(edit.value ?? "");
+    } else {
+      current.add(edit.value ?? "");
+    }
+    return { ...line, toppings: Array.from(current) };
+  });
+}
+
 function maybeAnswerStoreQuestion(lower: string, store: StoreInfo, state: SessionState): string | null {
   const asksHours = lower.includes("hour") || lower.includes("close") || lower.includes("open");
   if (asksHours) {
@@ -117,6 +227,7 @@ export function runAgentTurn(db: Database.Database, sessionId: string, message: 
     pizza: {
       sizes: { name: string }[];
       crusts: { name: string }[];
+      toppings: { name: string }[];
       presets?: { name: string; toppings: string[] }[];
     };
   };
@@ -238,6 +349,49 @@ export function runAgentTurn(db: Database.Database, sessionId: string, message: 
       reply: "I can add pizza, wings, or drinks. For pizza, tell me size, crust, and toppings.",
       state: nextState
     };
+  }
+
+  if (nextState.pizzaLines.length > 0) {
+    const edit = parsePizzaEdit(
+      message,
+      menu.pizza.sizes.map((size) => size.name),
+      menu.pizza.crusts.map((crust) => crust.name),
+      menu.pizza.presets ?? [],
+      menu.pizza.toppings.map((topping) => topping.name)
+    );
+    if (edit) {
+      const { targetLineIds, ambiguous, missingPresetTarget } = resolveLineTargets(nextState.pizzaLines, edit);
+      if (missingPresetTarget) {
+        const options = Array.from(new Set(nextState.pizzaLines.map((line) => line.preset ?? "custom"))).join(", ");
+        return {
+          reply: `I do not have any ${missingPresetTarget} pizzas in this order yet. Should I apply that change to ${options}, or all pizzas?`,
+          state: nextState
+        };
+      }
+      if (ambiguous) {
+        const options = Array.from(new Set(nextState.pizzaLines.map((line) => line.preset ?? "custom"))).join(", ");
+        return {
+          reply: `I can update that. Which pizzas should I apply it to: ${options}, or all pizzas?`,
+          state: nextState
+        };
+      }
+      if (targetLineIds.size > 0) {
+        nextState.pizzaLines = applyPizzaEditToLines(nextState.pizzaLines, edit, targetLineIds);
+        if (nextState.pizzaLines.every((line) => line.status === "complete")) {
+          nextState.items = toOrderItemsFromPizzaLines(nextState);
+        }
+        if (nextState.pizzaLines.some((line) => line.status !== "complete")) {
+          return {
+            reply: `Updated. I still need size and crust for all pizzas before checkout.`,
+            state: nextState
+          };
+        }
+        return {
+          reply: `Updated. Anything else you want to change before we place the order?`,
+          state: nextState
+        };
+      }
+    }
   }
 
   if (!nextState.specialInstructions) {
