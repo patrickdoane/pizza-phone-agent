@@ -161,7 +161,7 @@ Use this when you want repeatable scenario playback and automatic scorecard outp
 3. Optional environment overrides:
    - `EVAL_BASE_URL` (default: `http://127.0.0.1:3000`)
    - `EVAL_SCENARIOS_PATH` (default: `docs/conversation-scenarios.json`)
-   - `EVAL_RUN_ID` (default: value from scenario file or timestamp)
+   - `EVAL_RUN_ID` (default: auto-generated timestamped run id)
 4. Review generated artifacts under `docs/runs/<run-id>/`:
    - `scorecard.csv`
    - `results.json`

@@ -170,10 +170,22 @@ function toCsv(results: ScenarioResult[]): string {
   return [header, ...rows].join("\n");
 }
 
+function buildDefaultRunId(date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+  const ms = String(date.getMilliseconds()).padStart(3, "0");
+  const nonce = Math.random().toString(36).slice(2, 6);
+  return `run-${y}${m}${d}-${hh}${mm}${ss}-${ms}-${nonce}`;
+}
+
 async function run(): Promise<void> {
   const raw = await readFile(scenarioPath, "utf-8");
   const scenarioFile = JSON.parse(raw) as ScenarioFile;
-  const runId = process.env.EVAL_RUN_ID ?? scenarioFile.runId ?? `run-${Date.now()}`;
+  const runId = process.env.EVAL_RUN_ID ?? buildDefaultRunId();
 
   const runDir = path.join("docs", "runs", runId);
   await mkdir(runDir, { recursive: true });

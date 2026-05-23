@@ -1,8 +1,15 @@
 {
-  "generatedAt": "2026-05-23T04:06:06.417Z",
+  "generatedAt": "2026-05-23T04:29:24.313Z",
   "runs": [
     {
       "runId": "baseline-v1",
+      "successRate": 60,
+      "medianTurns": 7,
+      "safetyViolations": 0,
+      "scenarioCount": 10
+    },
+    {
+      "runId": "run-20260522-232751-780-zfcr",
       "successRate": 60,
       "medianTurns": 7,
       "safetyViolations": 0,
