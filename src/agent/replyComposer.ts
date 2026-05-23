@@ -33,8 +33,61 @@ function buildComposerPrompt(userMessage: string, fallbackReply: string): string
 export type ComposeReplyResult = {
   reply: string;
   composed: boolean;
-  reason: "composer_disabled" | "pattern_not_selected" | "llm_error" | "empty_draft" | "draft_too_long" | "composed";
+  reason: "composer_disabled" | "pattern_not_selected" | "llm_error" | "empty_draft" | "draft_too_long" | "fact_guard_failed" | "composed";
 };
+
+function extractTimeTokens(text: string): string[] {
+  return Array.from(text.matchAll(/\b\d{1,2}:\d{2}\b/g)).map((match) => match[0]);
+}
+
+function includesDayAnchors(text: string): boolean {
+  return /\b(mon|monday)\b/i.test(text) && /\b(fri|friday)\b/i.test(text) && /\b(sun|sunday)\b/i.test(text);
+}
+
+function extractZipToken(text: string): string | undefined {
+  return text.match(/\b\d{5}\b/)?.[0];
+}
+
+function extractStreetNumberToken(text: string): string | undefined {
+  return text.match(/\b\d+\b/)?.[0];
+}
+
+function digitsOnly(text: string): string {
+  return text.replace(/\D/g, "");
+}
+
+function factGuardPasses(fallbackReply: string, draftedReply: string): boolean {
+  if (fallbackReply.startsWith("Our hours are ")) {
+    const times = extractTimeTokens(fallbackReply);
+    if (times.length === 0 || !times.every((time) => draftedReply.includes(time))) {
+      return false;
+    }
+    return includesDayAnchors(draftedReply);
+  }
+
+  if (fallbackReply.startsWith("We are at ")) {
+    const streetNumber = extractStreetNumberToken(fallbackReply);
+    const zip = extractZipToken(fallbackReply);
+    if (streetNumber && !draftedReply.includes(streetNumber)) {
+      return false;
+    }
+    if (zip && !draftedReply.includes(zip)) {
+      return false;
+    }
+    return true;
+  }
+
+  if (fallbackReply.startsWith("You can reach the store at ")) {
+    const fallbackDigits = digitsOnly(fallbackReply);
+    const draftedDigits = digitsOnly(draftedReply);
+    if (fallbackDigits.length < 10) {
+      return false;
+    }
+    return draftedDigits.includes(fallbackDigits);
+  }
+
+  return true;
+}
 
 export async function composeReplyIfEnabled(userMessage: string, fallbackReply: string): Promise<ComposeReplyResult> {
   if (!config.probabilisticReplyComposer || !shouldCompose(fallbackReply)) {
@@ -63,6 +116,9 @@ export async function composeReplyIfEnabled(userMessage: string, fallbackReply: 
     }
     if (cleaned.length > 260) {
       return { reply: fallbackReply, composed: false, reason: "draft_too_long" };
+    }
+    if (!factGuardPasses(fallbackReply, cleaned)) {
+      return { reply: fallbackReply, composed: false, reason: "fact_guard_failed" };
     }
     return { reply: cleaned, composed: true, reason: "composed" };
   } catch {
