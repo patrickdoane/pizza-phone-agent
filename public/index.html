@@ -40,6 +40,23 @@
         gap: 10px;
         margin-top: 16px;
       }
+      .insights {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 10px;
+      }
+      .insight {
+        background: var(--card);
+        border: 1px solid #e5dfd4;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+      .insight strong {
+        color: var(--ink);
+      }
       .summary-card {
         background: var(--card);
         border: 1px solid #e5dfd4;
@@ -81,6 +98,27 @@
         font-size: 0.9rem;
         color: var(--muted);
       }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+      th,
+      td {
+        padding: 8px 6px;
+        border-bottom: 1px solid #ece7de;
+        text-align: left;
+      }
+      th {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      td.num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
       .empty {
         margin-top: 18px;
         color: var(--muted);
@@ -115,6 +153,10 @@
         <div class="summary-card"><div class="label">Latest Median Turns</div><div class="value" id="latestTurns">-</div></div>
         <div class="summary-card"><div class="label">Latest Safety Violations</div><div class="value" id="latestSafety">-</div></div>
       </div>
+      <div class="insights" id="insights" hidden>
+        <div class="insight" id="successDelta">Success trend: -</div>
+        <div class="insight" id="turnsDelta">Turn trend: -</div>
+      </div>
       <div id="empty" class="empty" hidden>No scorecard runs found yet. Run <code>npm run eval:conversations</code> and <code>npm run eval:metrics</code>.</div>
       <div class="grid" id="charts" hidden>
         <section class="card">
@@ -131,6 +173,21 @@
           <h2>Safety Violations</h2>
           <svg id="safetyChart" viewBox="0 0 320 180"></svg>
           <div class="legend">Target stays at zero.</div>
+        </section>
+        <section class="card">
+          <h2>Run History</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Run</th>
+                <th class="num">Success</th>
+                <th class="num">Turns</th>
+                <th class="num">Safety</th>
+                <th class="num">Scenarios</th>
+              </tr>
+            </thead>
+            <tbody id="runTableBody"></tbody>
+          </table>
         </section>
       </div>
     </div>
@@ -241,6 +298,7 @@
         const empty = document.getElementById("empty");
         const charts = document.getElementById("charts");
         const summary = document.getElementById("summary");
+        const insights = document.getElementById("insights");
 
         const response = await fetch("./metrics.json", { cache: "no-store" });
         if (!response.ok) {
@@ -260,6 +318,7 @@
         meta.textContent = `Runs: ${runs.length} • Last generated: ${generated}`;
         charts.hidden = false;
         summary.hidden = false;
+        insights.hidden = false;
 
         const success = runs.map((r) => r.successRate);
         const turns = runs.map((r) => r.medianTurns);
@@ -270,6 +329,31 @@
         document.getElementById("latestSuccess").textContent = `${latest.successRate}%`;
         document.getElementById("latestTurns").textContent = `${latest.medianTurns}`;
         document.getElementById("latestSafety").textContent = `${latest.safetyViolations}`;
+
+        const previous = runs.length > 1 ? runs[runs.length - 2] : null;
+        if (previous) {
+          const successDelta = Number((latest.successRate - previous.successRate).toFixed(1));
+          const turnsDelta = Number((latest.medianTurns - previous.medianTurns).toFixed(1));
+          const successWord = successDelta === 0 ? "flat" : successDelta > 0 ? `up ${successDelta}%` : `down ${Math.abs(successDelta)}%`;
+          const turnsWord = turnsDelta === 0 ? "flat" : turnsDelta > 0 ? `up ${turnsDelta}` : `down ${Math.abs(turnsDelta)}`;
+          document.getElementById("successDelta").innerHTML = `<strong>Success trend:</strong> ${successWord} vs previous run.`;
+          document.getElementById("turnsDelta").innerHTML = `<strong>Turn trend:</strong> ${turnsWord} median turns vs previous run.`;
+        } else {
+          document.getElementById("successDelta").innerHTML = `<strong>Success trend:</strong> baseline run only.`;
+          document.getElementById("turnsDelta").innerHTML = `<strong>Turn trend:</strong> baseline run only.`;
+        }
+
+        document.getElementById("runTableBody").innerHTML = runs
+          .map(
+            (run) => `<tr>
+                <td>${run.runId}</td>
+                <td class="num">${run.successRate}%</td>
+                <td class="num">${run.medianTurns}</td>
+                <td class="num">${run.safetyViolations}</td>
+                <td class="num">${run.scenarioCount}</td>
+              </tr>`
+          )
+          .join("");
 
         drawLineChart(document.getElementById("successChart"), success, labels, "#2e6f95", 0, 100, (v) => `${Number(v.toFixed(1))}`);
         drawLineChart(document.getElementById("turnsChart"), turns, labels, "#cc4b37", 0, Math.max(...turns, 1), (v) => `${Number(v.toFixed(1))}`);
