@@ -162,4 +162,77 @@ describe("agent tools behavior", () => {
     expect(result.reply).toContain("Which pizzas should I apply it to");
     db.close();
   });
+
+  it("asks for clarification when requested preset is not in current lines", () => {
+    const db = createTestDb();
+    const result = runAgentTurn(db, "s7", "make the pepperoni pan crust", {
+      fulfillmentType: "pickup",
+      customerName: "Jordan",
+      phoneNumber: "555-000-1111",
+      items: [
+        { type: "pizza", quantity: 3, size: "large", crust: "thin", toppings: ["cheese", "extra cheese"] },
+        {
+          type: "pizza",
+          quantity: 2,
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "pepperoni", "beef", "pork", "green peppers", "onions", "mushrooms"]
+        }
+      ],
+      pizzaLines: [
+        {
+          lineId: "line-1",
+          quantity: 3,
+          preset: "cheese",
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "extra cheese"],
+          status: "complete",
+          customerLabel: "3 cheese"
+        },
+        {
+          lineId: "line-2",
+          quantity: 2,
+          preset: "supreme",
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "pepperoni", "beef", "pork", "green peppers", "onions", "mushrooms"],
+          status: "complete",
+          customerLabel: "2 supreme"
+        }
+      ],
+      unclearCount: 0,
+      handoffRequested: false
+    });
+    expect(result.reply).toContain("do not have any pepperoni pizzas");
+    expect(result.reply).toContain("or all pizzas");
+    db.close();
+  });
+
+  it("removes extra cheese rather than base cheese for overlapping topping names", () => {
+    const db = createTestDb();
+    const result = runAgentTurn(db, "s8", "remove extra cheese from all pizzas", {
+      fulfillmentType: "pickup",
+      customerName: "Jordan",
+      phoneNumber: "555-000-1111",
+      items: [{ type: "pizza", quantity: 1, size: "large", crust: "thin", toppings: ["cheese", "extra cheese"] }],
+      pizzaLines: [
+        {
+          lineId: "line-1",
+          quantity: 1,
+          preset: "cheese",
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "extra cheese"],
+          status: "complete",
+          customerLabel: "1 cheese"
+        }
+      ],
+      unclearCount: 0,
+      handoffRequested: false
+    });
+    expect(result.state.pizzaLines[0].toppings).toContain("cheese");
+    expect(result.state.pizzaLines[0].toppings).not.toContain("extra cheese");
+    db.close();
+  });
 });

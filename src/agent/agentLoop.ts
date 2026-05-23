@@ -112,10 +112,13 @@ function parsePizzaEdit(
   const lower = message.toLowerCase();
   const parsedSize = sizes.find((item) => lower.includes(item.toLowerCase()));
   const parsedCrust = crusts.find((item) => lower.includes(item.toLowerCase()));
-  const parsedTopping = toppings.find((item) => lower.includes(item.toLowerCase()));
   const mentionsAdd = lower.includes("add ");
   const mentionsRemove =
     lower.includes("remove ") || lower.includes("without ") || lower.includes("no ") || lower.includes("hold ");
+  const isToppingEditIntent = mentionsAdd || mentionsRemove || lower.includes("topping");
+  const parsedTopping = isToppingEditIntent
+    ? [...toppings].sort((a, b) => b.length - a.length).find((item) => lower.includes(item.toLowerCase()))
+    : undefined;
 
   const subtopics = [Boolean(parsedSize), Boolean(parsedCrust), Boolean(parsedTopping || mentionsAdd || mentionsRemove)].filter(Boolean).length;
   if (subtopics !== 1) {
@@ -150,7 +153,7 @@ function parsePizzaEdit(
 function resolveLineTargets(
   lines: SessionState["pizzaLines"],
   edit: ParsedPizzaEdit
-): { targetLineIds: Set<string>; ambiguous: boolean } {
+): { targetLineIds: Set<string>; ambiguous: boolean; missingPresetTarget?: string } {
   if (lines.length === 0) {
     return { targetLineIds: new Set(), ambiguous: false };
   }
@@ -159,6 +162,9 @@ function resolveLineTargets(
   }
   if (edit.targetPreset) {
     const matched = lines.filter((line) => line.preset?.toLowerCase() === edit.targetPreset?.toLowerCase());
+    if (matched.length === 0) {
+      return { targetLineIds: new Set(), ambiguous: false, missingPresetTarget: edit.targetPreset };
+    }
     return { targetLineIds: new Set(matched.map((line) => line.lineId)), ambiguous: false };
   }
   return { targetLineIds: new Set(), ambiguous: true };
@@ -354,7 +360,14 @@ export function runAgentTurn(db: Database.Database, sessionId: string, message: 
       menu.pizza.toppings.map((topping) => topping.name)
     );
     if (edit) {
-      const { targetLineIds, ambiguous } = resolveLineTargets(nextState.pizzaLines, edit);
+      const { targetLineIds, ambiguous, missingPresetTarget } = resolveLineTargets(nextState.pizzaLines, edit);
+      if (missingPresetTarget) {
+        const options = Array.from(new Set(nextState.pizzaLines.map((line) => line.preset ?? "custom"))).join(", ");
+        return {
+          reply: `I do not have any ${missingPresetTarget} pizzas in this order yet. Should I apply that change to ${options}, or all pizzas?`,
+          state: nextState
+        };
+      }
       if (ambiguous) {
         const options = Array.from(new Set(nextState.pizzaLines.map((line) => line.preset ?? "custom"))).join(", ");
         return {

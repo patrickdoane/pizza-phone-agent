@@ -11,7 +11,8 @@
     "test": "vitest run",
     "seed": "tsx src/index.ts --seed-only",
     "eval:conversations": "tsx scripts/runConversationEval.ts",
-    "eval:metrics": "tsx scripts/buildScorecardMetrics.ts"
+    "eval:metrics": "tsx scripts/buildScorecardMetrics.ts",
+    "smoke:subtopic-edits": "tsx scripts/smokeSubtopicEdits.ts"
   },
   "engines": {
     "node": ">=20"
