@@ -102,6 +102,7 @@
         width: 100%;
         border-collapse: collapse;
         font-size: 0.9rem;
+        table-layout: fixed;
       }
       th,
       td {
@@ -118,6 +119,20 @@
       td.num {
         text-align: right;
         font-variant-numeric: tabular-nums;
+        width: 72px;
+      }
+      th.run-col,
+      td.run-col {
+        width: 44%;
+      }
+      td.run-col {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
       }
       .empty {
         margin-top: 18px;
@@ -176,18 +191,20 @@
         </section>
         <section class="card">
           <h2>Run History</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Run</th>
-                <th class="num">Success</th>
-                <th class="num">Turns</th>
-                <th class="num">Safety</th>
-                <th class="num">Scenarios</th>
-              </tr>
-            </thead>
-            <tbody id="runTableBody"></tbody>
-          </table>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="run-col">Run</th>
+                  <th class="num">Success</th>
+                  <th class="num">Turns</th>
+                  <th class="num">Safety</th>
+                  <th class="num">Scenarios</th>
+                </tr>
+              </thead>
+              <tbody id="runTableBody"></tbody>
+            </table>
+          </div>
         </section>
       </div>
     </div>
@@ -349,6 +366,8 @@
           const row = document.createElement("tr");
 
           const runIdCell = document.createElement("td");
+          runIdCell.className = "run-col";
+          runIdCell.title = `${run.runId}`;
           runIdCell.textContent = `${run.runId}`;
           row.appendChild(runIdCell);
 
