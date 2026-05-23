@@ -48,11 +48,16 @@ export function updateSessionState(db: Database.Database, id: string, state: Ses
   return getSession(db, id);
 }
 
-export function addSessionMessage(db: Database.Database, sessionId: string, role: "user" | "assistant" | "tool", content: string): void {
-  db.prepare("INSERT INTO session_messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)").run(
+export function addSessionMessage(db: Database.Database, sessionId: string, role: "user" | "assistant" | "tool", content: string): number {
+  const result = db.prepare("INSERT INTO session_messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)").run(
     sessionId,
     role,
     content,
     now()
   );
+  return Number(result.lastInsertRowid);
+}
+
+export function updateSessionMessageContent(db: Database.Database, id: number, content: string): void {
+  db.prepare("UPDATE session_messages SET content = ? WHERE id = ?").run(content, id);
 }

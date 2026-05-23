@@ -7,5 +7,7 @@ export const config = {
   dbPath: process.env.DB_PATH ?? "./pizza_agent.db",
   ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434",
   ollamaModel: process.env.OLLAMA_MODEL ?? "qwen3:14b",
-  salesTaxRate: Number(process.env.SALES_TAX_RATE ?? 0.0825)
+  salesTaxRate: Number(process.env.SALES_TAX_RATE ?? 0.0825),
+  probabilisticReplyComposer: process.env.PROBABILISTIC_REPLY_COMPOSER === "1",
+  probabilisticReplyComposerDebug: process.env.PROBABILISTIC_REPLY_COMPOSER_DEBUG === "1"
 };

@@ -1,9 +1,11 @@
 import { FastifyInstance } from "fastify";
 import { GREETING, runAgentTurn } from "../agent/agentLoop.js";
+import { composeReplyIfEnabled } from "../agent/replyComposer.js";
+import { config } from "../config.js";
 import { getMenu } from "../menu/menuService.js";
 import { updateOrderStatus } from "../orders/orderService.js";
 import { sessionMessageSchema } from "../sessions/sessionSchema.js";
-import { addSessionMessage, createSession, getSession, updateSessionState } from "../sessions/sessionService.js";
+import { addSessionMessage, createSession, getSession, updateSessionMessageContent, updateSessionState } from "../sessions/sessionService.js";
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   app.get("/health", async () => ({ ok: true }));
@@ -39,13 +41,20 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     const processTurn = app.db.transaction(() => {
       addSessionMessage(app.db, session.id, "user", parsed.data.message);
       const result = runAgentTurn(app.db, session.id, parsed.data.message, session.state);
-      addSessionMessage(app.db, session.id, "assistant", result.reply);
+      const assistantMessageId = addSessionMessage(app.db, session.id, "assistant", result.reply);
       updateSessionState(app.db, session.id, result.state, result.handoffRequested ? "handoff_requested" : session.status);
-      return result;
+      return { result, assistantMessageId };
     });
 
-    const result = processTurn();
-    return { reply: result.reply, pendingOrderId: result.pendingOrderId ?? null, handoffRequested: !!result.handoffRequested };
+    const { result, assistantMessageId } = processTurn();
+    const composed = await composeReplyIfEnabled(parsed.data.message, result.reply);
+    if (config.probabilisticReplyComposerDebug) {
+      app.log.info({ composed: composed.composed, reason: composed.reason }, "Reply composer decision");
+    }
+    if (composed.reply !== result.reply) {
+      updateSessionMessageContent(app.db, assistantMessageId, composed.reply);
+    }
+    return { reply: composed.reply, pendingOrderId: result.pendingOrderId ?? null, handoffRequested: !!result.handoffRequested };
   });
 
   app.post("/orders/:id/approve", async (req, reply) => {
