@@ -177,7 +177,9 @@ function buildDefaultRunId(date = new Date()): string {
   const hh = String(date.getHours()).padStart(2, "0");
   const mm = String(date.getMinutes()).padStart(2, "0");
   const ss = String(date.getSeconds()).padStart(2, "0");
-  return `run-${y}${m}${d}-${hh}${mm}${ss}`;
+  const ms = String(date.getMilliseconds()).padStart(3, "0");
+  const nonce = Math.random().toString(36).slice(2, 6);
+  return `run-${y}${m}${d}-${hh}${mm}${ss}-${ms}-${nonce}`;
 }
 
 async function run(): Promise<void> {
