@@ -344,4 +344,63 @@ describe("agent tools behavior", () => {
     expect(second.state.pizzaLines).toHaveLength(1);
     db.close();
   });
+
+  it("reprompts for invalid phone number instead of accepting it", () => {
+    const db = createTestDb();
+    const result = runAgentTurn(db, "s13", "2", {
+      fulfillmentType: "pickup",
+      customerName: "John",
+      items: [],
+      pizzaLines: [],
+      unclearCount: 0,
+      handoffRequested: false
+    });
+    expect(result.reply).toContain("valid phone number");
+    expect(result.state.phoneNumber).toBeUndefined();
+    db.close();
+  });
+
+  it("parses compact grouped list without comma or and", () => {
+    const db = createTestDb();
+    const result = runAgentTurn(db, "s14", "I want 3 pepp 2 supreme pizza", {
+      fulfillmentType: "pickup",
+      customerName: "John",
+      phoneNumber: "555-111-2222",
+      items: [],
+      pizzaLines: [],
+      unclearCount: 0,
+      handoffRequested: false
+    });
+    expect(result.state.pizzaLines).toHaveLength(2);
+    expect(result.reply).toContain("What size and crust should I use");
+    db.close();
+  });
+
+  it("handles adding grouped pizzas after existing lines are complete", () => {
+    const db = createTestDb();
+    const result = runAgentTurn(db, "s15", "I want 2 pepp pizzas", {
+      fulfillmentType: "pickup",
+      customerName: "John",
+      phoneNumber: "555-111-2222",
+      items: [{ type: "pizza", quantity: 2, size: "large", crust: "pan", toppings: ["cheese", "pepperoni"] }],
+      pizzaLines: [
+        {
+          lineId: "line-1",
+          quantity: 2,
+          preset: "pepperoni",
+          size: "large",
+          crust: "pan",
+          toppings: ["cheese", "pepperoni"],
+          status: "complete",
+          customerLabel: "2 pepperoni"
+        }
+      ],
+      specialInstructions: "none",
+      unclearCount: 0,
+      handoffRequested: false
+    });
+    expect(result.reply).toContain("Added");
+    expect(result.state.pizzaLines).toHaveLength(2);
+    db.close();
+  });
 });

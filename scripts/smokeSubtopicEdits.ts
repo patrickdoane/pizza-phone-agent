@@ -130,6 +130,16 @@ function main(): void {
         { user: "I want 2 peperoni pizzas", expectReplyIncludes: ["did you mean pepperoni"] },
         { user: "yes", expectReplyIncludes: ["added 2 pepperoni pizzas", "size and crust"] }
       ]
+    },
+    {
+      name: "Invalid phone is rejected and compact grouped list parses",
+      steps: [
+        { user: "pickup", expectReplyIncludes: ["what name"] },
+        { user: "John", expectReplyIncludes: ["phone number"] },
+        { user: "2", expectReplyIncludes: ["valid phone number"] },
+        { user: "555-111-2222", expectReplyIncludes: ["what would you like to order"] },
+        { user: "I want 3 pepp 2 supreme pizza", expectReplyIncludes: ["added 3 pepperoni pizzas, 2 supreme pizzas", "size and crust"] }
+      ]
     }
   ];
 

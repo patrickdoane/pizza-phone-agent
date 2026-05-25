@@ -39,6 +39,11 @@ function extractPhone(input: string): string | undefined {
   return match?.[0];
 }
 
+function isLikelyPhone(input: string): boolean {
+  const digits = input.replace(/\D/g, "");
+  return digits.length >= 7;
+}
+
 export function shouldRefuseCoupon(message: string, availableCoupons: string[]): boolean {
   const couponMatch = message.match(/\b[A-Z0-9]{4,12}\b/g) ?? [];
   return couponMatch.some((token) => token.includes("SAVE") || token.includes("OFF") || token.includes("DEAL"))
@@ -379,6 +384,9 @@ export function runAgentTurn(db: Database.Database, sessionId: string, message: 
 
   if (!nextState.phoneNumber) {
     const phone = extractPhone(message) ?? message.trim();
+    if (!isLikelyPhone(phone)) {
+      return { reply: "Please share a valid phone number with at least 7 digits.", state: nextState };
+    }
     nextState.phoneNumber = phone;
     if (nextState.fulfillmentType === "delivery") {
       return { reply: "Please share your delivery address including ZIP code.", state: nextState };
@@ -439,44 +447,43 @@ export function runAgentTurn(db: Database.Database, sessionId: string, message: 
     };
   }
 
-  if (nextState.items.length === 0) {
-    const grouped = parseGroupedPizzaOrder(
-      message,
-      menu.pizza.presets ?? [],
-      menu.pizza.sizes.map((size) => size.name),
-      menu.pizza.crusts.map((crust) => crust.name)
-    );
-    if (grouped) {
-      if (grouped.clarificationPrompt) {
-        if (grouped.pendingResolution) {
-          nextState.pendingResolution = {
-            flow: "grouped_order",
-            mode: grouped.pendingResolution.mode,
-            quantity: grouped.pendingResolution.quantity,
-            options: grouped.pendingResolution.options,
-            size: grouped.pendingResolution.size,
-            crust: grouped.pendingResolution.crust
-          };
-        }
-        return { reply: grouped.clarificationPrompt, state: nextState };
-      }
-      nextState.pizzaLines = grouped.lines;
-      nextState.items = [];
-
-      if (grouped.lines.every((line) => line.status === "complete")) {
-        nextState.items = toOrderItemsFromPizzaLines(nextState);
-        return {
-          reply: `Added ${summarizePizzaLines(nextState)}. Any drinks, wings, or special instructions?`,
-          state: nextState
+  const grouped = parseGroupedPizzaOrder(
+    message,
+    menu.pizza.presets ?? [],
+    menu.pizza.sizes.map((size) => size.name),
+    menu.pizza.crusts.map((crust) => crust.name)
+  );
+  if (grouped) {
+    if (grouped.clarificationPrompt) {
+      if (grouped.pendingResolution) {
+        nextState.pendingResolution = {
+          flow: "grouped_order",
+          mode: grouped.pendingResolution.mode,
+          quantity: grouped.pendingResolution.quantity,
+          options: grouped.pendingResolution.options,
+          size: grouped.pendingResolution.size,
+          crust: grouped.pendingResolution.crust
         };
       }
+      return { reply: grouped.clarificationPrompt, state: nextState };
+    }
 
+    nextState.pizzaLines = [...nextState.pizzaLines, ...grouped.lines];
+    if (nextState.pizzaLines.every((line) => line.status === "complete")) {
+      nextState.items = toOrderItemsFromPizzaLines(nextState);
       return {
-        reply: `Added ${summarizePizzaLines(nextState)}. What size and crust should I use for these pizzas?`,
+        reply: `Added ${summarizePizzaLines(nextState)}. Anything else you want to add or change?`,
         state: nextState
       };
     }
+    nextState.items = [];
+    return {
+      reply: `Added ${summarizePizzaLines(nextState)}. What size and crust should I use for these pizzas?`,
+      state: nextState
+    };
+  }
 
+  if (nextState.items.length === 0) {
     if (lower.includes("large") && lower.includes("pizza")) {
       nextState.items.push({ type: "pizza", quantity: 1, size: "large", crust: "thin", toppings: ["pepperoni"] });
       return { reply: "Added one large thin pepperoni pizza. Any drinks, wings, or special instructions?", state: nextState };

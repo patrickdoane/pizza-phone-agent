@@ -37,7 +37,10 @@ export function parseGroupedPizzaOrder(
     return null;
   }
 
-  const normalizedGroups = normalizedMessage.replace(/\b\d+\s+pizzas?\s*:\s*/g, "");
+  const normalizedGroups = normalizedMessage
+    .replace(/\b\d+\s+pizzas?\s*:\s*/g, "")
+    .replace(/\bpizzas?\b/g, " pizza ")
+    .replace(/([a-z])\s+(\d+\s+)/g, "$1, $2");
   const groupRegex = /(\d+)\s+([a-z\s-]+?)(?=\s*(?:,|\band\b|$))/gi;
   const matches = Array.from(normalizedGroups.matchAll(groupRegex));
   if (matches.length === 0) {
