@@ -4,6 +4,7 @@ import { buildTools } from "./tools.js";
 import { SessionState, SessionStateInput, sessionStateSchema } from "../sessions/sessionSchema.js";
 import { orderDraftSchema } from "../orders/orderSchema.js";
 import { applySizeAndCrustToIncompleteLines, parseGroupedPizzaOrder } from "./pizzaLineParser.js";
+import { MenuEntityCandidate, resolveMenuEntity } from "./menuEntityResolver.js";
 import { normalizePizzaAliasText } from "./pizzaAliases.js";
 
 export const GREETING = "Thanks for calling. I’m an AI assistant that can help take your order. Would you like pickup or delivery?";
@@ -101,6 +102,37 @@ function parseSizeAndCrust(message: string, sizes: string[], crusts: string[]): 
   const size = sizes.find((item) => lower.includes(item.toLowerCase()));
   const crust = crusts.find((item) => lower.includes(item.toLowerCase()));
   return { size, crust };
+}
+
+function resolveEntityFromMessage(message: string, candidates: MenuEntityCandidate[]): ReturnType<typeof resolveMenuEntity> {
+  const normalized = normalizePizzaAliasText(message);
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  const queries = new Set<string>();
+  queries.add(normalized);
+  for (let i = 0; i < tokens.length; i += 1) {
+    queries.add(tokens[i]);
+    if (i + 1 < tokens.length) {
+      queries.add(`${tokens[i]} ${tokens[i + 1]}`);
+    }
+    if (i + 2 < tokens.length) {
+      queries.add(`${tokens[i]} ${tokens[i + 1]} ${tokens[i + 2]}`);
+    }
+  }
+
+  let best: ReturnType<typeof resolveMenuEntity> = { status: "no_match" };
+  for (const query of queries) {
+    const result = resolveMenuEntity(query, candidates);
+    if (result.status === "match") {
+      if (best.status !== "match" || result.match.score > best.match.score) {
+        best = result;
+      }
+      continue;
+    }
+    if (result.status === "ambiguous" && best.status === "no_match") {
+      best = result;
+    }
+  }
+  return best;
 }
 
 function parsePizzaEdit(
@@ -296,12 +328,34 @@ export function runAgentTurn(db: Database.Database, sessionId: string, message: 
   }
 
   if (nextState.pizzaLines.length > 0 && nextState.items.length === 0) {
-    const parsed = parseSizeAndCrust(
-      message,
-      menu.pizza.sizes.map((size) => size.name),
-      menu.pizza.crusts.map((crust) => crust.name)
-    );
-    nextState.pizzaLines = applySizeAndCrustToIncompleteLines(nextState.pizzaLines, parsed.size, parsed.crust);
+    const sizeCandidates = menu.pizza.sizes.map((size) => ({ kind: "size" as const, name: size.name }));
+    const crustCandidates = menu.pizza.crusts.map((crust) => ({ kind: "crust" as const, name: crust.name }));
+    const sizeResolution = resolveEntityFromMessage(message, sizeCandidates);
+    const crustResolution = resolveEntityFromMessage(message, crustCandidates);
+
+    if (sizeResolution.status === "ambiguous") {
+      return {
+        reply: `I found a couple size options: ${sizeResolution.matches[0].candidate.name} or ${sizeResolution.matches[1].candidate.name}. Which one should I use?`,
+        state: nextState
+      };
+    }
+    if (crustResolution.status === "ambiguous") {
+      return {
+        reply: `I found a couple crust options: ${crustResolution.matches[0].candidate.name} or ${crustResolution.matches[1].candidate.name}. Which one should I use?`,
+        state: nextState
+      };
+    }
+    if (sizeResolution.status === "match" && sizeResolution.match.confidence === "medium") {
+      return { reply: `Did you mean ${sizeResolution.match.candidate.name}?`, state: nextState };
+    }
+    if (crustResolution.status === "match" && crustResolution.match.confidence === "medium") {
+      return { reply: `Did you mean ${crustResolution.match.candidate.name}?`, state: nextState };
+    }
+
+    const parsed = parseSizeAndCrust(message, menu.pizza.sizes.map((size) => size.name), menu.pizza.crusts.map((crust) => crust.name));
+    const resolvedSize = sizeResolution.status === "match" ? sizeResolution.match.candidate.name : parsed.size;
+    const resolvedCrust = crustResolution.status === "match" ? crustResolution.match.candidate.name : parsed.crust;
+    nextState.pizzaLines = applySizeAndCrustToIncompleteLines(nextState.pizzaLines, resolvedSize, resolvedCrust);
 
     if (nextState.pizzaLines.some((line) => line.status !== "complete")) {
       return {
@@ -325,6 +379,9 @@ export function runAgentTurn(db: Database.Database, sessionId: string, message: 
       menu.pizza.crusts.map((crust) => crust.name)
     );
     if (grouped) {
+      if (grouped.clarificationPrompt) {
+        return { reply: grouped.clarificationPrompt, state: nextState };
+      }
       nextState.pizzaLines = grouped.lines;
       nextState.items = [];
 
@@ -361,6 +418,52 @@ export function runAgentTurn(db: Database.Database, sessionId: string, message: 
       menu.pizza.toppings.map((topping) => topping.name)
     );
     if (edit) {
+      if (edit.subtopic === "size" && edit.value) {
+        const resolved = resolveEntityFromMessage(message, menu.pizza.sizes.map((size) => ({ kind: "size" as const, name: size.name })));
+        if (resolved.status === "ambiguous") {
+          return {
+            reply: `I found a couple size options: ${resolved.matches[0].candidate.name} or ${resolved.matches[1].candidate.name}. Which one should I use?`,
+            state: nextState
+          };
+        }
+        if (resolved.status === "match" && resolved.match.confidence === "medium") {
+          return { reply: `Did you mean ${resolved.match.candidate.name}?`, state: nextState };
+        }
+        if (resolved.status === "match") {
+          edit.value = resolved.match.candidate.name;
+        }
+      }
+      if (edit.subtopic === "crust" && edit.value) {
+        const resolved = resolveEntityFromMessage(message, menu.pizza.crusts.map((crust) => ({ kind: "crust" as const, name: crust.name })));
+        if (resolved.status === "ambiguous") {
+          return {
+            reply: `I found a couple crust options: ${resolved.matches[0].candidate.name} or ${resolved.matches[1].candidate.name}. Which one should I use?`,
+            state: nextState
+          };
+        }
+        if (resolved.status === "match" && resolved.match.confidence === "medium") {
+          return { reply: `Did you mean ${resolved.match.candidate.name}?`, state: nextState };
+        }
+        if (resolved.status === "match") {
+          edit.value = resolved.match.candidate.name;
+        }
+      }
+      if (edit.subtopic === "toppings" && edit.value) {
+        const resolved = resolveEntityFromMessage(message, menu.pizza.toppings.map((topping) => ({ kind: "topping" as const, name: topping.name })));
+        if (resolved.status === "ambiguous") {
+          return {
+            reply: `I found a couple topping options: ${resolved.matches[0].candidate.name} or ${resolved.matches[1].candidate.name}. Which one should I use?`,
+            state: nextState
+          };
+        }
+        if (resolved.status === "match" && resolved.match.confidence === "medium") {
+          return { reply: `Did you mean ${resolved.match.candidate.name}?`, state: nextState };
+        }
+        if (resolved.status === "match") {
+          edit.value = resolved.match.candidate.name;
+        }
+      }
+
       const { targetLineIds, ambiguous, missingPresetTarget } = resolveLineTargets(nextState.pizzaLines, edit);
       if (missingPresetTarget) {
         const options = Array.from(new Set(nextState.pizzaLines.map((line) => line.preset ?? "custom"))).join(", ");
