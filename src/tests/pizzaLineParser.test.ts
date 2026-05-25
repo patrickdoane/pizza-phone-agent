@@ -60,4 +60,30 @@ describe("pizza line parser", () => {
     expect(result?.lines[0].quantity).toBe(2);
     expect(result?.lines[0].preset).toBe("pepperoni");
   });
+
+  it("returns medium-confidence confirmation prompt for grouped typo", () => {
+    const result = parseGroupedPizzaOrder(
+      "I want 2 peperoni pizzas",
+      [
+        { name: "pepperoni", toppings: ["cheese", "pepperoni"] },
+        { name: "supreme", toppings: ["cheese", "pepperoni", "beef", "pork", "green peppers", "onions", "mushrooms"] }
+      ],
+      ["small", "medium", "large"],
+      ["thin", "hand-tossed", "pan"]
+    );
+    expect(result?.clarificationPrompt).toContain("Did you mean pepperoni?");
+  });
+
+  it("returns top-two disambiguation prompt for ambiguous grouped match", () => {
+    const result = parseGroupedPizzaOrder(
+      "I want 2 bee pizzas",
+      [
+        { name: "beef", toppings: ["cheese", "beef"] },
+        { name: "beet", toppings: ["cheese", "beet"] }
+      ],
+      ["small", "medium", "large"],
+      ["thin", "hand-tossed", "pan"]
+    );
+    expect(result?.clarificationPrompt).toContain("beef or beet");
+  });
 });
