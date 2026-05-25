@@ -235,4 +235,76 @@ describe("agent tools behavior", () => {
     expect(result.state.pizzaLines[0].toppings).not.toContain("extra cheese");
     db.close();
   });
+
+  it("accepts hand toss alias for targeted crust updates", () => {
+    const db = createTestDb();
+    const result = runAgentTurn(db, "s9", "make the supreme hand toss", {
+      fulfillmentType: "pickup",
+      customerName: "Jordan",
+      phoneNumber: "555-000-1111",
+      items: [
+        { type: "pizza", quantity: 3, size: "large", crust: "thin", toppings: ["cheese", "extra cheese"] },
+        {
+          type: "pizza",
+          quantity: 2,
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "pepperoni", "beef", "pork", "green peppers", "onions", "mushrooms"]
+        }
+      ],
+      pizzaLines: [
+        {
+          lineId: "line-1",
+          quantity: 3,
+          preset: "cheese",
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "extra cheese"],
+          status: "complete",
+          customerLabel: "3 cheese"
+        },
+        {
+          lineId: "line-2",
+          quantity: 2,
+          preset: "supreme",
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "pepperoni", "beef", "pork", "green peppers", "onions", "mushrooms"],
+          status: "complete",
+          customerLabel: "2 supreme"
+        }
+      ],
+      unclearCount: 0,
+      handoffRequested: false
+    });
+    expect(result.state.pizzaLines[1].crust).toBe("hand-tossed");
+    db.close();
+  });
+
+  it("accepts pepp alias for pepperoni topping removal", () => {
+    const db = createTestDb();
+    const result = runAgentTurn(db, "s10", "remove pepp from all pizzas", {
+      fulfillmentType: "pickup",
+      customerName: "Jordan",
+      phoneNumber: "555-000-1111",
+      items: [{ type: "pizza", quantity: 1, size: "large", crust: "thin", toppings: ["cheese", "pepperoni"] }],
+      pizzaLines: [
+        {
+          lineId: "line-1",
+          quantity: 1,
+          preset: "pepperoni",
+          size: "large",
+          crust: "thin",
+          toppings: ["cheese", "pepperoni"],
+          status: "complete",
+          customerLabel: "1 pepperoni"
+        }
+      ],
+      unclearCount: 0,
+      handoffRequested: false
+    });
+    expect(result.state.pizzaLines[0].toppings).toContain("cheese");
+    expect(result.state.pizzaLines[0].toppings).not.toContain("pepperoni");
+    db.close();
+  });
 });

@@ -80,6 +80,28 @@ function main(): void {
         { user: "large thin", expectReplyIncludes: ["any drinks, wings, or special instructions"] },
         { user: "remove extra cheese from all pizzas", expectReplyIncludes: ["updated"] }
       ]
+    },
+    {
+      name: "Hand toss alias updates crust",
+      steps: [
+        { user: "pickup", expectReplyIncludes: ["what name"] },
+        { user: "Jordan", expectReplyIncludes: ["phone number"] },
+        { user: "555-000-1111", expectReplyIncludes: ["what would you like to order"] },
+        { user: "I want 5 pizzas: 3 cheese, 2 supreme", expectReplyIncludes: ["size and crust"] },
+        { user: "large thin", expectReplyIncludes: ["any drinks, wings, or special instructions"] },
+        { user: "make the supreme hand toss", expectReplyIncludes: ["updated"] }
+      ]
+    },
+    {
+      name: "Pepp alias removes pepperoni",
+      steps: [
+        { user: "pickup", expectReplyIncludes: ["what name"] },
+        { user: "Jordan", expectReplyIncludes: ["phone number"] },
+        { user: "555-000-1111", expectReplyIncludes: ["what would you like to order"] },
+        { user: "I want 1 pizzas: 1 pepperoni", expectReplyIncludes: ["size and crust"] },
+        { user: "large thin", expectReplyIncludes: ["any drinks, wings, or special instructions"] },
+        { user: "remove pepp from all pizzas", expectReplyIncludes: ["updated"] }
+      ]
     }
   ];
 

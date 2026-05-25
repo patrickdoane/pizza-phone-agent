@@ -33,4 +33,15 @@ describe("pizza line parser", () => {
     expect(updated.every((line) => line.crust === "pan")).toBe(true);
     expect(updated.every((line) => line.status === "complete")).toBe(true);
   });
+
+  it("matches hand tossed alias to hand-tossed crust", () => {
+    const result = parseGroupedPizzaOrder(
+      "I want 2 supreme pizzas hand tossed",
+      presets,
+      ["small", "medium", "large"],
+      ["thin", "hand-tossed", "pan"]
+    );
+    expect(result).toBeTruthy();
+    expect(result?.lines[0].crust).toBe("hand-tossed");
+  });
 });

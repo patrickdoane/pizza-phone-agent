@@ -4,6 +4,7 @@ import { buildTools } from "./tools.js";
 import { SessionState, SessionStateInput, sessionStateSchema } from "../sessions/sessionSchema.js";
 import { orderDraftSchema } from "../orders/orderSchema.js";
 import { applySizeAndCrustToIncompleteLines, parseGroupedPizzaOrder } from "./pizzaLineParser.js";
+import { normalizePizzaAliasText } from "./pizzaAliases.js";
 
 export const GREETING = "Thanks for calling. I’m an AI assistant that can help take your order. Would you like pickup or delivery?";
 
@@ -96,7 +97,7 @@ function toOrderItemsFromPizzaLines(state: SessionState) {
 }
 
 function parseSizeAndCrust(message: string, sizes: string[], crusts: string[]): { size?: string; crust?: string } {
-  const lower = message.toLowerCase();
+  const lower = normalizePizzaAliasText(message);
   const size = sizes.find((item) => lower.includes(item.toLowerCase()));
   const crust = crusts.find((item) => lower.includes(item.toLowerCase()));
   return { size, crust };
@@ -109,7 +110,7 @@ function parsePizzaEdit(
   presets: { name: string; toppings: string[] }[],
   toppings: string[]
 ): ParsedPizzaEdit | null {
-  const lower = message.toLowerCase();
+  const lower = normalizePizzaAliasText(message);
   const parsedSize = sizes.find((item) => lower.includes(item.toLowerCase()));
   const parsedCrust = crusts.find((item) => lower.includes(item.toLowerCase()));
   const mentionsAdd = lower.includes("add ");

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { PizzaLine } from "../sessions/sessionSchema.js";
+import { normalizePizzaAliasText } from "./pizzaAliases.js";
 
 type ParseGroupedOrderResult = {
   lines: PizzaLine[];
@@ -13,7 +14,7 @@ export function parseGroupedPizzaOrder(
   sizes: string[],
   crusts: string[]
 ): ParseGroupedOrderResult | null {
-  const lower = message.toLowerCase();
+  const lower = normalizePizzaAliasText(message);
   if (!lower.includes("pizza")) {
     return null;
   }
