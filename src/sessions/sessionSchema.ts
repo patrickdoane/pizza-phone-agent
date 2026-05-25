@@ -22,6 +22,16 @@ export const sessionStateSchema = z.object({
   items: z.array(z.any()).default([]),
   pizzaLines: z.array(pizzaLineSchema).default([]),
   activeLineId: z.string().optional(),
+  pendingResolution: z
+    .object({
+      flow: z.literal("grouped_order"),
+      mode: z.enum(["confirm", "choose"]),
+      quantity: z.number().int().positive(),
+      options: z.array(z.string()).min(1),
+      size: z.string().optional(),
+      crust: z.string().optional()
+    })
+    .optional(),
   pendingPrompt: z.string().optional(),
   unclearCount: z.number().int().min(0).default(0),
   lastIntent: z.enum(["order_flow", "store_info", "nonsense", "handoff"]).optional(),

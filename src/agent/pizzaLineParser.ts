@@ -8,6 +8,13 @@ type ParseGroupedOrderResult = {
   parsedSize?: string;
   parsedCrust?: string;
   clarificationPrompt?: string;
+  pendingResolution?: {
+    mode: "confirm" | "choose";
+    quantity: number;
+    options: string[];
+    size?: string;
+    crust?: string;
+  };
 };
 
 export function parseGroupedPizzaOrder(
@@ -31,7 +38,7 @@ export function parseGroupedPizzaOrder(
   }
 
   const normalizedGroups = normalizedMessage.replace(/\b\d+\s+pizzas?\s*:\s*/g, "");
-  const groupRegex = /(\d+)\s+([^,]+)/gi;
+  const groupRegex = /(\d+)\s+([a-z\s-]+?)(?=\s*(?:,|\band\b|$))/gi;
   const matches = Array.from(normalizedGroups.matchAll(groupRegex));
   if (matches.length === 0) {
     return null;
@@ -42,7 +49,7 @@ export function parseGroupedPizzaOrder(
     const quantity = Number(match[1]);
     const rawDescriptor = (match[2] ?? "")
       .replace(/\bpizzas?\b/g, "")
-      .replace(/\b(and|with)\b.*/g, "")
+      .replace(/\bwith\b.*/g, "")
       .trim();
     if (/\d/.test(rawDescriptor)) {
       continue;
@@ -86,7 +93,14 @@ export function parseGroupedPizzaOrder(
         lines: [],
         parsedSize,
         parsedCrust,
-        clarificationPrompt: `I found a couple preset options: ${optionA} or ${optionB}. Which one should I use?`
+        clarificationPrompt: `I found a couple preset options: ${optionA} or ${optionB}. Which one should I use?`,
+        pendingResolution: {
+          mode: "choose",
+          quantity,
+          options: [optionA, optionB].filter((item): item is string => Boolean(item)),
+          size: parsedSize,
+          crust: parsedCrust
+        }
       };
     }
     if (resolved.status !== "match") {
@@ -97,7 +111,14 @@ export function parseGroupedPizzaOrder(
         lines: [],
         parsedSize,
         parsedCrust,
-        clarificationPrompt: `Did you mean ${resolved.match.candidate.name}?`
+        clarificationPrompt: `Did you mean ${resolved.match.candidate.name}?`,
+        pendingResolution: {
+          mode: "confirm",
+          quantity,
+          options: [resolved.match.candidate.name],
+          size: parsedSize,
+          crust: parsedCrust
+        }
       };
     }
     const preset = presetMap.get(resolved.match.candidate.name.toLowerCase());

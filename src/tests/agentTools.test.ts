@@ -307,4 +307,41 @@ describe("agent tools behavior", () => {
     expect(result.state.pizzaLines[0].toppings).not.toContain("pepperoni");
     db.close();
   });
+
+  it("handles grouped non-comma list with and separator", () => {
+    const db = createTestDb();
+    const result = runAgentTurn(db, "s11", "I want 3 cheese pizzas and 2 supreme pizzas", {
+      fulfillmentType: "pickup",
+      customerName: "Jordan",
+      phoneNumber: "555-000-1111",
+      items: [],
+      pizzaLines: [],
+      unclearCount: 0,
+      handoffRequested: false
+    });
+    expect(result.state.pizzaLines).toHaveLength(2);
+    expect(result.reply).toContain("What size and crust should I use");
+    db.close();
+  });
+
+  it("persists grouped clarification and accepts yes confirmation", () => {
+    const db = createTestDb();
+    const first = runAgentTurn(db, "s12", "I want 2 peperoni pizzas", {
+      fulfillmentType: "pickup",
+      customerName: "Jordan",
+      phoneNumber: "555-000-1111",
+      items: [],
+      pizzaLines: [],
+      unclearCount: 0,
+      handoffRequested: false
+    });
+    expect(first.reply).toContain("Did you mean pepperoni");
+    expect(first.state.pendingResolution?.flow).toBe("grouped_order");
+
+    const second = runAgentTurn(db, "s12", "yes", first.state);
+    expect(second.reply).toContain("Added 2 pepperoni pizzas");
+    expect(second.state.pendingResolution).toBeUndefined();
+    expect(second.state.pizzaLines).toHaveLength(1);
+    db.close();
+  });
 });

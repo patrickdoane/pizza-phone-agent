@@ -6,6 +6,7 @@ import { orderDraftSchema } from "../orders/orderSchema.js";
 import { applySizeAndCrustToIncompleteLines, parseGroupedPizzaOrder } from "./pizzaLineParser.js";
 import { MenuEntityCandidate, resolveMenuEntity } from "./menuEntityResolver.js";
 import { normalizePizzaAliasText } from "./pizzaAliases.js";
+import { randomUUID } from "node:crypto";
 
 export const GREETING = "Thanks for calling. I’m an AI assistant that can help take your order. Would you like pickup or delivery?";
 
@@ -95,6 +96,25 @@ function toOrderItemsFromPizzaLines(state: SessionState) {
     crust: line.crust ?? "",
     toppings: line.toppings
   }));
+}
+
+function buildGroupedLineFromPreset(
+  quantity: number,
+  presetName: string,
+  presetToppings: string[],
+  size?: string,
+  crust?: string
+) {
+  return {
+    lineId: randomUUID(),
+    quantity,
+    preset: presetName as SessionState["pizzaLines"][number]["preset"],
+    size,
+    crust,
+    toppings: [...presetToppings],
+    status: size && crust ? ("complete" as const) : ("incomplete" as const),
+    customerLabel: `${quantity} ${presetName}`
+  };
 }
 
 function parseSizeAndCrust(message: string, sizes: string[], crusts: string[]): { size?: string; crust?: string } {
@@ -274,6 +294,54 @@ export function runAgentTurn(db: Database.Database, sessionId: string, message: 
   });
   const lower = message.toLowerCase();
 
+  if (nextState.pendingResolution?.flow === "grouped_order") {
+    const pending = nextState.pendingResolution;
+    const normalized = normalizePizzaAliasText(message);
+    const saysYes = normalized === "yes" || normalized.includes("yes") || normalized.includes("confirm");
+    const saysNo = normalized === "no" || normalized.includes("no") || normalized.includes("different");
+
+    let selected: string | undefined;
+    if (pending.mode === "confirm") {
+      if (saysNo) {
+        nextState.pendingResolution = undefined;
+        return { reply: "No problem. Which preset should I use for that pizza group?", state: nextState };
+      }
+      if (saysYes) {
+        selected = pending.options[0];
+      }
+    }
+    if (!selected) {
+      selected = pending.options.find((option) => normalized.includes(option.toLowerCase()));
+    }
+    if (!selected) {
+      const options = pending.options.join(" or ");
+      return { reply: `Please choose one option: ${options}.`, state: nextState };
+    }
+
+    const preset = (menu.pizza.presets ?? []).find((item) => item.name.toLowerCase() === selected?.toLowerCase());
+    if (!preset) {
+      nextState.pendingResolution = undefined;
+      return { reply: "I couldn't match that to a preset. Please restate the pizza group.", state: nextState };
+    }
+
+    nextState.pendingResolution = undefined;
+    nextState.pizzaLines = [
+      ...nextState.pizzaLines,
+      buildGroupedLineFromPreset(pending.quantity, preset.name, preset.toppings, pending.size, pending.crust)
+    ];
+    if (nextState.pizzaLines.every((line) => line.status === "complete")) {
+      nextState.items = toOrderItemsFromPizzaLines(nextState);
+      return {
+        reply: `Added ${summarizePizzaLines(nextState)}. Any drinks, wings, or special instructions?`,
+        state: nextState
+      };
+    }
+    return {
+      reply: `Added ${summarizePizzaLines(nextState)}. What size and crust should I use for these pizzas?`,
+      state: nextState
+    };
+  }
+
   const storeReply = maybeAnswerStoreQuestion(lower, store, nextState);
   if (storeReply) {
     return { reply: storeReply, state: nextState };
@@ -380,6 +448,16 @@ export function runAgentTurn(db: Database.Database, sessionId: string, message: 
     );
     if (grouped) {
       if (grouped.clarificationPrompt) {
+        if (grouped.pendingResolution) {
+          nextState.pendingResolution = {
+            flow: "grouped_order",
+            mode: grouped.pendingResolution.mode,
+            quantity: grouped.pendingResolution.quantity,
+            options: grouped.pendingResolution.options,
+            size: grouped.pendingResolution.size,
+            crust: grouped.pendingResolution.crust
+          };
+        }
         return { reply: grouped.clarificationPrompt, state: nextState };
       }
       nextState.pizzaLines = grouped.lines;

@@ -86,4 +86,17 @@ describe("pizza line parser", () => {
     );
     expect(result?.clarificationPrompt).toContain("beef or beet");
   });
+
+  it("parses non-comma grouped lists joined with and", () => {
+    const result = parseGroupedPizzaOrder(
+      "I want 3 cheese pizzas and 2 supreme pizzas",
+      presets,
+      ["small", "medium", "large"],
+      ["thin", "hand-tossed", "pan"]
+    );
+    expect(result).toBeTruthy();
+    expect(result?.lines).toHaveLength(2);
+    expect(result?.lines[0].quantity).toBe(3);
+    expect(result?.lines[1].quantity).toBe(2);
+  });
 });
