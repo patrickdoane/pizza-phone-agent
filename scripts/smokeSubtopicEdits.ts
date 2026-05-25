@@ -102,6 +102,15 @@ function main(): void {
         { user: "large thin", expectReplyIncludes: ["any drinks, wings, or special instructions"] },
         { user: "remove pepp from all pizzas", expectReplyIncludes: ["updated"] }
       ]
+    },
+    {
+      name: "Grouped pepp shorthand parses pepperoni preset",
+      steps: [
+        { user: "pickup", expectReplyIncludes: ["what name"] },
+        { user: "Jordan", expectReplyIncludes: ["phone number"] },
+        { user: "555-000-1111", expectReplyIncludes: ["what would you like to order"] },
+        { user: "I want 2 pepp pizzas", expectReplyIncludes: ["added 2 pepperoni pizzas", "size and crust"] }
+      ]
     }
   ];
 

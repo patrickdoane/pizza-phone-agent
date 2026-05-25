@@ -14,13 +14,13 @@ export function parseGroupedPizzaOrder(
   sizes: string[],
   crusts: string[]
 ): ParseGroupedOrderResult | null {
-  const lower = normalizePizzaAliasText(message);
-  if (!lower.includes("pizza")) {
+  const normalizedMessage = normalizePizzaAliasText(message);
+  if (!normalizedMessage.includes("pizza")) {
     return null;
   }
 
-  const parsedSize = sizes.find((size) => lower.includes(size.toLowerCase()));
-  const parsedCrust = crusts.find((crust) => lower.includes(crust.toLowerCase()));
+  const parsedSize = sizes.find((size) => normalizedMessage.includes(size.toLowerCase()));
+  const parsedCrust = crusts.find((crust) => normalizedMessage.includes(crust.toLowerCase()));
 
   const presetMap = new Map(presets.map((preset) => [preset.name.toLowerCase(), preset]));
   const presetNames = Array.from(presetMap.keys()).sort((a, b) => b.length - a.length).join("|");
@@ -29,7 +29,7 @@ export function parseGroupedPizzaOrder(
   }
 
   const groupRegex = new RegExp(`(\\d+)\\s+(${presetNames})`, "gi");
-  const matches = Array.from(message.matchAll(groupRegex));
+  const matches = Array.from(normalizedMessage.matchAll(groupRegex));
   if (matches.length === 0) {
     return null;
   }
